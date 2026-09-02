@@ -5,7 +5,7 @@
 
 <p align="center">
   <img 
-    src="docs/CycloneSense-Competition-Grade-Architecture.svg"
+    src="D:\CycloneSense\CycloneSense-Competition-Grade-Architecture.svg"
     alt="CycloneSense AI Competition-Grade Architecture"
     width="100%"
   />
