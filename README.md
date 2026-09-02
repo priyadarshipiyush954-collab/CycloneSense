@@ -1,6 +1,44 @@
 # 🌪️ CycloneSense AI
 
 ### AI-Powered Tropical Cyclone Identification, Classification & Prediction
+## 🏗️ Competition-Grade Architecture
+
+<p align="center">
+  <img 
+    src="docs/CycloneSense-Competition-Grade-Architecture.svg"
+    alt="CycloneSense AI Competition-Grade Architecture"
+    width="100%"
+  />
+</p>
+
+### End-to-End Pipeline
+
+```text
+Real Satellite Data
+        ↓
+Data Engineering & Quality Control
+        ↓
+PyTorch Multi-Source Fusion
+        ↓
+Temporal Forecasting
+        ↓
+Pattern + Track + Intensity Prediction
+        ↓
+Grad-CAM Explainability
+        ↓
+Prediction Maps / Storm Cone
+        ↓
+FastAPI Inference API
+        ↓
+PostgreSQL + PostGIS
+        ↓
+React Interactive Dashboard
+        ↓
+Docker + GitHub Actions CI/CD
+        ↓
+GHCR → Cloud Deployment
+        ↓
+Monitoring & SIH Documentation
 
 CycloneSense AI is an **Artificial Intelligence / Machine Learning based disaster-management platform** designed to identify, classify, and predict tropical cyclone patterns using **multi-source satellite observations and meteorological data**.
 

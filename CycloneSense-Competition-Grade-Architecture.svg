@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1100" viewBox="0 0 1800 1100">
+<defs>
+<linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#07111f"/><stop offset="1" stop-color="#111c33"/></linearGradient>
+<linearGradient id="c" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22d3ee"/><stop offset="1" stop-color="#3b82f6"/></linearGradient>
+<linearGradient id="p" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a78bfa"/><stop offset="1" stop-color="#6366f1"/></linearGradient>
+<linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#34d399"/><stop offset="1" stop-color="#10b981"/></linearGradient>
+<linearGradient id="o" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fbbf24"/><stop offset="1" stop-color="#f97316"/></linearGradient>
+<filter id="s"><feDropShadow dx="0" dy="7" stdDeviation="10" flood-opacity=".3"/></filter>
+<marker id="a" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#64748b"/></marker>
+<style>
+.t{font:700 40px Arial,sans-serif;fill:#f8fafc}.sub{font:400 18px Arial,sans-serif;fill:#94a3b8}
+.sec{font:700 17px Arial,sans-serif;fill:#e2e8f0}.h{font:700 19px Arial,sans-serif;fill:#f8fafc}
+.b{font:400 14px Arial,sans-serif;fill:#cbd5e1}.sm{font:500 12px Arial,sans-serif;fill:#94a3b8}
+.tag{font:700 11px Arial,sans-serif;fill:#fff}.line{stroke:#64748b;stroke-width:2.5;fill:none;marker-end:url(#a)}
+</style></defs>
+<rect width="1800" height="1100" fill="url(#bg)"/>
+
+<text x="65" y="65" class="t">CycloneSense AI — Competition-Grade SIH Architecture</text>
+<text x="65" y="98" class="sub">Real satellite data → PyTorch multi-source fusion → forecasting → explainability → maps → cloud deployment</text>
+
+<text x="65" y="150" class="sec">1 · REAL DATASET &amp; DATA ENGINEERING</text>
+
+<g filter="url(#s)"><rect x="65" y="175" width="270" height="180" rx="18" fill="#101b2e" stroke="#22d3ee" stroke-width="2"/>
+<rect x="84" y="193" width="90" height="24" rx="12" fill="url(#c)"/><text x="129" y="210" text-anchor="middle" class="tag">SATELLITE</text>
+<text x="88" y="248" class="h">Multi-source imagery</text><text x="88" y="277" class="b">• INSAT / Himawari / GOES</text><text x="88" y="301" class="b">• IR / VIS / WV channels</text><text x="88" y="325" class="b">• Time-aligned observations</text><text x="88" y="347" class="sm">NetCDF / HDF5 / GeoTIFF</text></g>
+
+<g filter="url(#s)"><rect x="365" y="175" width="270" height="180" rx="18" fill="#101b2e" stroke="#3b82f6" stroke-width="2"/>
+<rect x="384" y="193" width="85" height="24" rx="12" fill="url(#c)"/><text x="426" y="210" text-anchor="middle" class="tag">TRACKS</text>
+<text x="388" y="248" class="h">Historical storm labels</text><text x="388" y="277" class="b">• IMD / IBTrACS</text><text x="388" y="301" class="b">• Lat / lon / pressure</text><text x="388" y="325" class="b">• Wind / intensity class</text><text x="388" y="347" class="sm">Storm-based train/val/test split</text></g>
+
+<g filter="url(#s)"><rect x="665" y="175" width="270" height="180" rx="18" fill="#101b2e" stroke="#6366f1" stroke-width="2"/>
+<rect x="684" y="193" width="100" height="24" rx="12" fill="url(#p)"/><text x="734" y="210" text-anchor="middle" class="tag">ETL / QC</text>
+<text x="688" y="248" class="h">Data preparation</text><text x="688" y="277" class="b">• Decode + normalize</text><text x="688" y="301" class="b">• Cloud / missing-data QC</text><text x="688" y="325" class="b">• Reprojection + alignment</text><text x="688" y="347" class="sm">Versioned manifests + dataset registry</text></g>
+
+<g filter="url(#s)"><rect x="965" y="175" width="270" height="180" rx="18" fill="#101b2e" stroke="#34d399" stroke-width="2"/>
+<rect x="984" y="193" width="100" height="24" rx="12" fill="url(#g)"/><text x="1034" y="210" text-anchor="middle" class="tag">AUGMENT</text>
+<text x="988" y="248" class="h">Training dataset builder</text><text x="988" y="277" class="b">• Spatial / temporal windows</text><text x="988" y="301" class="b">• Balanced storm classes</text><text x="988" y="325" class="b">• Leakage prevention</text><text x="988" y="347" class="sm">PyTorch Dataset / DataLoader</text></g>
+
+<g filter="url(#s)"><rect x="1265" y="175" width="270" height="180" rx="18" fill="#101b2e" stroke="#fbbf24" stroke-width="2"/>
+<rect x="1284" y="193" width="85" height="24" rx="12" fill="url(#o)"/><text x="1326" y="210" text-anchor="middle" class="tag">REGISTRY</text>
+<text x="1288" y="248" class="h">Dataset governance</text><text x="1288" y="277" class="b">• Dataset version + checksum</text><text x="1288" y="301" class="b">• Data lineage + metadata</text><text x="1288" y="325" class="b">• Reproducible experiments</text><text x="1288" y="347" class="sm">DVC / object storage ready</text></g>
+
+<path d="M335 265H365" class="line"/><path d="M635 265H665" class="line"/><path d="M935 265H965" class="line"/><path d="M1235 265H1265" class="line"/>
+
+<text x="65" y="420" class="sec">2 · PYTORCH TRAINING + MULTI-SOURCE FUSION</text>
+
+<g filter="url(#s)"><rect x="65" y="445" width="300" height="195" rx="18" fill="#101b2e" stroke="#22d3ee" stroke-width="2"/>
+<text x="88" y="483" class="h">Satellite encoder</text><text x="88" y="512" class="b">ResNet / EfficientNet / ViT</text><text x="88" y="538" class="b">Multi-channel feature extraction</text><text x="88" y="564" class="b">Spatial attention</text><rect x="88" y="585" width="235" height="29" rx="9" fill="#0e2940"/><text x="205" y="604" text-anchor="middle" class="sm">image_embedding [B,D]</text></g>
+
+<g filter="url(#s)"><rect x="405" y="445" width="300" height="195" rx="18" fill="#101b2e" stroke="#a78bfa" stroke-width="2"/>
+<text x="428" y="483" class="h">Metadata / track encoder</text><text x="428" y="512" class="b">MLP: lat / lon / wind / pressure</text><text x="428" y="538" class="b">Temporal and storm context</text><text x="428" y="564" class="b">Physics-informed features</text><rect x="428" y="585" width="235" height="29" rx="9" fill="#251d46"/><text x="545" y="604" text-anchor="middle" class="sm">track_embedding [B,D]</text></g>
+
+<g filter="url(#s)"><rect x="745" y="445" width="300" height="195" rx="18" fill="#101b2e" stroke="#34d399" stroke-width="2"/>
+<text x="768" y="483" class="h">Fusion + temporal model</text><text x="768" y="512" class="b">Cross-attention / feature fusion</text><text x="768" y="538" class="b">LSTM / GRU / Transformer</text><text x="768" y="564" class="b">Multi-step sequence forecasting</text><rect x="768" y="585" width="235" height="29" rx="9" fill="#10352f"/><text x="885" y="604" text-anchor="middle" class="sm">fused_sequence [B,T,D]</text></g>
+
+<g filter="url(#s)"><rect x="1085" y="445" width="300" height="195" rx="18" fill="#101b2e" stroke="#fbbf24" stroke-width="2"/>
+<text x="1108" y="483" class="h">Multi-task prediction heads</text><text x="1108" y="512" class="b">Pattern classification</text><text x="1108" y="538" class="b">Track: Δlat / Δlon</text><text x="1108" y="564" class="b">Intensity: wind / pressure</text><rect x="1108" y="585" width="235" height="29" rx="9" fill="#3a2b10"/><text x="1225" y="604" text-anchor="middle" class="sm">CE + Huber + temporal loss</text></g>
+
+<g filter="url(#s)"><rect x="1425" y="445" width="310" height="195" rx="18" fill="#101b2e" stroke="#f97316" stroke-width="2"/>
+<text x="1448" y="483" class="h">Validation &amp; model registry</text><text x="1448" y="512" class="b">Accuracy / F1 / MAE / RMSE</text><text x="1448" y="538" class="b">Calibration + uncertainty</text><text x="1448" y="564" class="b">Best checkpoint + version</text><text x="1448" y="600" class="sm">MLflow / W&amp;B compatible</text></g>
+
+<path d="M215 355V445" class="line"/><path d="M500 355V445" class="line"/><path d="M800 355V445" class="line"/><path d="M1040 545H1085" class="line"/><path d="M1385 545H1425" class="line"/>
+<path d="M365 545H405" class="line"/><path d="M705 545H745" class="line"/>
+
+<text x="65" y="705" class="sec">3 · EXPLAINABILITY, PREDICTION MAPS &amp; PRODUCTION PLATFORM</text>
+
+<g filter="url(#s)"><rect x="65" y="730" width="270" height="180" rx="18" fill="#101b2e" stroke="#f97316" stroke-width="2"/>
+<text x="88" y="768" class="h">Grad-CAM + XAI</text><text x="88" y="797" class="b">• Class activation heatmaps</text><text x="88" y="823" class="b">• Saliency overlays</text><text x="88" y="849" class="b">• Confidence explanation</text><text x="88" y="880" class="sm">Auditable AI decision support</text></g>
+
+<g filter="url(#s)"><rect x="365" y="730" width="270" height="180" rx="18" fill="#101b2e" stroke="#22d3ee" stroke-width="2"/>
+<text x="388" y="768" class="h">Geospatial prediction</text><text x="388" y="797" class="b">• Forecast track polyline</text><text x="388" y="823" class="b">• Uncertainty / storm cone</text><text x="388" y="849" class="b">• Intensity timeline</text><text x="388" y="880" class="sm">GeoJSON / PNG / map tiles</text></g>
+
+<g filter="url(#s)"><rect x="665" y="730" width="270" height="180" rx="18" fill="#101b2e" stroke="#3b82f6" stroke-width="2"/>
+<text x="688" y="768" class="h">FastAPI inference</text><text x="688" y="797" class="b">POST /predict/pattern</text><text x="688" y="823" class="b">POST /predict/forecast</text><text x="688" y="849" class="b">GET /health / model info</text><text x="688" y="880" class="sm">Auth • validation • rate limits</text></g>
+
+<g filter="url(#s)"><rect x="965" y="730" width="270" height="180" rx="18" fill="#101b2e" stroke="#a78bfa" stroke-width="2"/>
+<text x="988" y="768" class="h">Database + storage</text><text x="988" y="797" class="b">PostgreSQL + PostGIS</text><text x="988" y="823" class="b">Storms / observations / predictions</text><text x="988" y="849" class="b">S3-compatible imagery</text><text x="988" y="880" class="sm">Audit trail + model versions</text></g>
+
+<g filter="url(#s)"><rect x="1265" y="730" width="270" height="180" rx="18" fill="#101b2e" stroke="#34d399" stroke-width="2"/>
+<text x="1288" y="768" class="h">Polished dashboard</text><text x="1288" y="797" class="b">React / TypeScript</text><text x="1288" y="823" class="b">Interactive storm map</text><text x="1288" y="849" class="b">Forecast + Grad-CAM panels</text><text x="1288" y="880" class="sm">Responsive SIH demo UI</text></g>
+
+<g filter="url(#s)"><rect x="1565" y="730" width="170" height="180" rx="18" fill="#101b2e" stroke="#fbbf24" stroke-width="2"/>
+<text x="1588" y="768" class="h">Cloud</text><text x="1588" y="797" class="b">Docker</text><text x="1588" y="823" class="b">GHCR</text><text x="1588" y="849" class="b">Render / AWS</text><text x="1588" y="880" class="sm">HTTPS + secrets</text></g>
+
+<path d="M210 640V730" class="line"/><path d="M510 640V730" class="line"/><path d="M1235 640V730" class="line"/>
+<path d="M335 820H365" class="line"/><path d="M635 820H665" class="line"/><path d="M935 820H965" class="line"/><path d="M1235 820H1265" class="line"/><path d="M1535 820H1565" class="line"/>
+
+<text x="65" y="970" class="sec">4 · CI/CD + DOCUMENTATION + SIH DELIVERY</text>
+<rect x="65" y="992" width="1670" height="58" rx="15" fill="#0c1729" stroke="#334155"/>
+<text x="90" y="1017" class="b">GitHub</text><text x="180" y="1017" class="sm">→ Ruff + Pytest → integration tests → security scan → Docker Buildx → SBOM + provenance → GHCR → protected production deploy → smoke test</text>
+<text x="90" y="1038" class="b">SIH package</text><text x="180" y="1038" class="sm">README • architecture • dataset card • model card • API docs • demo script • results • deployment guide • final PPT • responsible-use disclaimer</text>
+
+<text x="900" y="1085" text-anchor="middle" class="sm">CycloneSense AI • Competition-grade reference architecture • AI decision support, not an official cyclone warning system</text>
+</svg>
