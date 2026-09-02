@@ -1,101 +1,286 @@
-name: CI/CD
+name: CycloneSense AI - CI/CD
+
+# ============================================================
+# TRIGGERS
+# ============================================================
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+
   pull_request:
-    branches: [main]
+    branches:
+      - main
+
+  workflow_dispatch:
+
+
+# ============================================================
+# GLOBAL PERMISSIONS
+# ============================================================
 
 permissions:
   contents: read
   packages: write
 
+
+# ============================================================
+# CONCURRENCY
+# Prevents multiple deployments running at the same time
+# ============================================================
+
+concurrency:
+  group: cyclonesense-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+
+# ============================================================
+# JOB 1 - QUALITY + TESTS
+# ============================================================
+
 jobs:
 
-  # =========================
-  # 1. TEST
-  # =========================
   test:
-    name: Run Tests
+    name: 🧪 Test & Quality
     runs-on: ubuntu-latest
 
+    timeout-minutes: 15
+
     steps:
+
+      # --------------------------------------------------------
+      # Checkout
+      # --------------------------------------------------------
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Python
+
+      # --------------------------------------------------------
+      # Python
+      # --------------------------------------------------------
+
+      - name: Setup Python 3.12
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+
+      # --------------------------------------------------------
+      # Upgrade pip
+      # --------------------------------------------------------
+
+      - name: Upgrade pip
+        run: |
+          python -m pip install --upgrade pip
+
+
+      # --------------------------------------------------------
+      # Install dependencies
+      # --------------------------------------------------------
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
           pip install -r requirements.txt
+          pip install pytest ruff
+
+
+      # --------------------------------------------------------
+      # Ruff - Code Quality
+      # --------------------------------------------------------
+
+      - name: Run Ruff
+        run: |
+          ruff check app tests
+
+
+      # --------------------------------------------------------
+      # Run Pytest
+      # --------------------------------------------------------
 
       - name: Run tests
         run: |
-          pytest -q
+          pytest -q \
+            --junitxml=test-results.xml
+
+
+      # --------------------------------------------------------
+      # Upload test results
+      # --------------------------------------------------------
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-results
+          path: test-results.xml
+          retention-days: 14
+
+
+# ============================================================
+# JOB 2 - DOCKER BUILD + GHCR
+# Only runs after successful tests
+# ============================================================
 
   docker:
-    name: Build & Push Docker Image
+    name: 🐳 Build & Publish Docker
     needs: test
 
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: >
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main'
 
     runs-on: ubuntu-latest
 
+    timeout-minutes: 30
+
     steps:
+
+      # --------------------------------------------------------
+      # Checkout
+      # --------------------------------------------------------
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Login to GitHub Container Registry
+
+      # --------------------------------------------------------
+      # Docker Buildx
+      # --------------------------------------------------------
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+
+      # --------------------------------------------------------
+      # Login to GitHub Container Registry
+      # --------------------------------------------------------
+
+      - name: Login to GHCR
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+
+      # --------------------------------------------------------
+      # Docker Image Metadata
+      # --------------------------------------------------------
+
       - name: Generate Docker metadata
-        uses: docker/metadata-action@v5
         id: meta
+        uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ github.repository }}
 
           tags: |
             type=raw,value=latest
             type=sha
+            type=ref,event=branch
+
+
+      # --------------------------------------------------------
+      # Build + Push
+      # --------------------------------------------------------
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
+
           context: .
+
           push: true
+
           tags: |
             ${{ steps.meta.outputs.tags }}
 
           labels: |
             ${{ steps.meta.outputs.labels }}
 
+          # Docker layer cache
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+          # Supply-chain metadata
+          provenance: true
+          sbom: true
+
+
+# ============================================================
+# JOB 3 - DEPLOY TO RENDER
+# ============================================================
+
   deploy:
-    name: Deploy to Render
+    name: 🚀 Deploy Production
     needs: docker
 
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: >
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main'
 
     runs-on: ubuntu-latest
+
+    timeout-minutes: 15
+
+    # ----------------------------------------------------------
+    # GitHub Production Environment
+    #
+    # You can configure:
+    # - Required reviewers
+    # - Deployment branch restrictions
+    # - Environment secrets
+    #
+    # ----------------------------------------------------------
+
+    environment:
+      name: production
+
+    concurrency:
+      group: cyclonesense-production
+      cancel-in-progress: false
+
     env:
       RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
 
     steps:
+
+      # --------------------------------------------------------
+      # Deploy to Render
+      # --------------------------------------------------------
+
       - name: Trigger Render deployment
         if: env.RENDER_DEPLOY_HOOK != ''
         run: |
-          curl -fsS -X POST "$RENDER_DEPLOY_HOOK"
+          echo "🚀 Triggering Render deployment..."
 
-      - name: Render deploy not configured
+          curl \
+            --fail \
+            --silent \
+            --show-error \
+            --retry 5 \
+            --retry-delay 5 \
+            --request POST \
+            "$RENDER_DEPLOY_HOOK"
+
+          echo "✅ Render deployment triggered successfully."
+
+
+      # --------------------------------------------------------
+      # Skip deployment if secret doesn't exist
+      # --------------------------------------------------------
+
+      - name: Render deployment not configured
         if: env.RENDER_DEPLOY_HOOK == ''
         run: |
-          echo "RENDER_DEPLOY_HOOK secret is not configured."
+          echo "⚠️ RENDER_DEPLOY_HOOK is not configured."
           echo "Skipping Render deployment."
+          echo "Docker image was successfully published to GHCR."
 
+
+# ============================================================
+# PIPELINE COMPLETE
+# ============================================================
