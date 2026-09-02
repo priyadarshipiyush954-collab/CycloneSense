@@ -37,10 +37,6 @@ jobs:
         run: |
           pytest -q
 
-
-  # =========================
-  # 2. BUILD & PUSH DOCKER
-  # =========================
   docker:
     name: Build & Push Docker Image
     needs: test
@@ -75,17 +71,12 @@ jobs:
         with:
           context: .
           push: true
-
           tags: |
             ${{ steps.meta.outputs.tags }}
 
           labels: |
             ${{ steps.meta.outputs.labels }}
 
-
-  # =========================
-  # 3. DEPLOY TO RENDER
-  # =========================
   deploy:
     name: Deploy to Render
     needs: docker
@@ -93,7 +84,6 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     runs-on: ubuntu-latest
-
     env:
       RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
 
@@ -108,3 +98,4 @@ jobs:
         run: |
           echo "RENDER_DEPLOY_HOOK secret is not configured."
           echo "Skipping Render deployment."
+
