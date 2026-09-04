@@ -3,6 +3,5 @@ torchvision
 scikit-learn
 numpy
 pillow
-numpy
 tqdm
 requests
