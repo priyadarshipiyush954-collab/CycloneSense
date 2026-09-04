@@ -1,21 +1,11 @@
-# Competition training entry point.
-# Recommended production model: EfficientNet/ResNet/ViT image encoder +
-# metadata MLP + fusion layer + LSTM/Temporal Transformer for forecasting.
-# Dataset layout:
-# data/train/<pattern>/*.png
-# data/val/<pattern>/*.png
-# Split by STORM ID to prevent temporal leakage.
-print("Add your GPU training pipeline here; save checkpoint to models/cyclone_model.pt")
-"""
-Model Training Pipeline for Cyclone Satellite Morphology Pattern Classification
+"""Model Training Pipeline for Cyclone Satellite Morphology Pattern Classification.
+
 CycloneSense AI - PyTorch Vision Training
 Trains CyclonePatternCNN on satellite imagery partitioned by storm ID.
 Saves best checkpoint to models/cyclone_model.pt.
 """
 
 import logging
-import os
-import sys
 import time
 from pathlib import Path
 
@@ -41,21 +31,25 @@ LEARNING_RATE = 1e-3
 
 
 def get_transforms():
-    train_transform = transforms.Compose([
-        transforms.Resize((IMG_SIZE, IMG_SIZE)),
-        transforms.RandomHorizontalFlip(p=0.5),
-        transforms.RandomVerticalFlip(p=0.5),
-        transforms.RandomRotation(degrees=30),
-        transforms.ColorJitter(brightness=0.1, contrast=0.1),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-    ])
+    train_transform = transforms.Compose(
+        [
+            transforms.Resize((IMG_SIZE, IMG_SIZE)),
+            transforms.RandomHorizontalFlip(p=0.5),
+            transforms.RandomVerticalFlip(p=0.5),
+            transforms.RandomRotation(degrees=30),
+            transforms.ColorJitter(brightness=0.1, contrast=0.1),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ]
+    )
 
-    eval_transform = transforms.Compose([
-        transforms.Resize((IMG_SIZE, IMG_SIZE)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-    ])
+    eval_transform = transforms.Compose(
+        [
+            transforms.Resize((IMG_SIZE, IMG_SIZE)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ]
+    )
 
     return train_transform, eval_transform
 
@@ -118,18 +112,22 @@ def train_vision_model():
     test_dir = DATA_DIR / "test"
 
     if not train_dir.exists() or not any(train_dir.iterdir()):
-        logger.error(f"Training dataset not found at {train_dir}. Please run prepare_dataset.py first.")
+        logger.error(f"Dataset not found at {train_dir}. Run prepare_dataset.py first.")
         return None
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    logger.info(f"Using training compute device: {device} ({torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'})")
+    dev_name = torch.cuda.get_device_name(0) if torch.cuda.is_available() else "CPU"
+    logger.info(f"Using training compute device: {device} ({dev_name})")
 
     train_tf, eval_tf = get_transforms()
     train_dataset = datasets.ImageFolder(str(train_dir), transform=train_tf)
     val_dataset = datasets.ImageFolder(str(val_dir), transform=eval_tf)
     test_dataset = datasets.ImageFolder(str(test_dir), transform=eval_tf)
 
-    logger.info(f"Loaded datasets: {len(train_dataset)} train, {len(val_dataset)} val, {len(test_dataset)} test samples.")
+    logger.info(
+        f"Datasets: {len(train_dataset)} train, {len(val_dataset)} val, "
+        f"{len(test_dataset)} test samples."
+    )
     logger.info(f"Class mapping: {train_dataset.class_to_idx}")
 
     train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, drop_last=False)
@@ -139,7 +137,9 @@ def train_vision_model():
     model = CyclonePatternCNN(num_classes=len(PATTERNS)).to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=1e-4)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="min", factor=0.5, patience=2)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, mode="min", factor=0.5, patience=2
+    )
 
     best_val_loss = float("inf")
     best_val_acc = 0.0
@@ -171,7 +171,7 @@ def train_vision_model():
                 "std": [0.229, 0.224, 0.225],
             }
             torch.save(checkpoint, CHECKPOINT_PATH)
-            logger.info(f"--> Saved best model checkpoint to {CHECKPOINT_PATH} (Val Acc: {best_val_acc * 100:.1f}%)")
+            logger.info(f"--> Saved best model checkpoint (Val Acc: {best_val_acc * 100:.1f}%)")
 
     elapsed = time.time() - start_time
     logger.info(f"Training completed in {elapsed:.1f} seconds.")

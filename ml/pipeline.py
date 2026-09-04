@@ -9,9 +9,7 @@ Executes end-to-end:
 """
 
 import logging
-import sys
 import time
-from pathlib import Path
 
 from .download_real_data import main as download_main
 from .prepare_dataset import main as prepare_main
@@ -48,4 +46,3 @@ def run_full_pipeline():
 
 if __name__ == "__main__":
     run_full_pipeline()
-

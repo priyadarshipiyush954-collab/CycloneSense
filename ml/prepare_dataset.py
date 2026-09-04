@@ -10,12 +10,11 @@ import csv
 import json
 import logging
 import math
-import os
 import random
 from pathlib import Path
 
 import numpy as np
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image, ImageFilter
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
@@ -159,21 +158,15 @@ def prepare_image_dataset(samples_per_class: int = 120):
     splits = {"train": 0.70, "val": 0.15, "test": 0.15}
 
     # Assign distinct virtual storm IDs to enforce strict grouping
-    storm_ids = [
-        f"STORM_AMPHAN_{i}" for i in range(15)
-    ] + [
-        f"STORM_FANI_{i}" for i in range(15)
-    ] + [
-        f"STORM_BIPARJOY_{i}" for i in range(15)
-    ] + [
-        f"STORM_TAUKTAE_{i}" for i in range(15)
-    ] + [
-        f"STORM_MOCHA_{i}" for i in range(15)
-    ] + [
-        f"STORM_REMAL_{i}" for i in range(15)
-    ] + [
-        f"STORM_DANA_{i}" for i in range(15)
-    ]
+    storm_ids = (
+        [f"STORM_AMPHAN_{i}" for i in range(15)]
+        + [f"STORM_FANI_{i}" for i in range(15)]
+        + [f"STORM_BIPARJOY_{i}" for i in range(15)]
+        + [f"STORM_TAUKTAE_{i}" for i in range(15)]
+        + [f"STORM_MOCHA_{i}" for i in range(15)]
+        + [f"STORM_REMAL_{i}" for i in range(15)]
+        + [f"STORM_DANA_{i}" for i in range(15)]
+    )
 
     random.seed(42)
     shuffled_storms = list(storm_ids)
@@ -187,7 +180,9 @@ def prepare_image_dataset(samples_per_class: int = 120):
     val_storms = set(shuffled_storms[n_train : n_train + n_val])
     test_storms = set(shuffled_storms[n_train + n_val :])
 
-    logger.info(f"Storm split: {len(train_storms)} train, {len(val_storms)} val, {len(test_storms)} test.")
+    logger.info(
+        f"Storm split: {len(train_storms)} train, {len(val_storms)} val, {len(test_storms)} test."
+    )
 
     counts = {"train": 0, "val": 0, "test": 0}
 
@@ -212,8 +207,10 @@ def prepare_image_dataset(samples_per_class: int = 120):
             img.save(dest_path, "PNG")
             counts[split_name] += 1
 
+    total_imgs = sum(counts.values())
     logger.info(
-        f"Morphology images generated: train={counts['train']}, val={counts['val']}, test={counts['test']} (Total={sum(counts.values())})"
+        f"Morphology images generated: train={counts['train']}, "
+        f"val={counts['val']}, test={counts['test']} (Total={total_imgs})"
     )
 
 
@@ -228,23 +225,25 @@ def prepare_sequential_track_dataset(seq_len: int = 4):
 
     logger.info(f"Loading track records from {TRACKS_FILE}...")
     storms = {}
-    with open(TRACKS_FILE, "r", encoding="utf-8") as f:
+    with open(TRACKS_FILE, encoding="utf-8") as f:
         reader = csv.DictReader(f)
         for row in reader:
             sid = row["storm_id"]
             if sid not in storms:
                 storms[sid] = []
-            storms[sid].append({
-                "lat": float(row["lat"]),
-                "lon": float(row["lon"]),
-                "wind_kts": float(row["wind_kts"]),
-                "pressure_hpa": float(row["pressure_hpa"]),
-                "dlat": float(row["dlat"]),
-                "dlon": float(row["dlon"]),
-                "dwind": float(row["dwind"]),
-                "dpressure": float(row["dpressure"]),
-                "intensity_class": INTENSITY_TO_IDX.get(row["intensity_class"], 0),
-            })
+            storms[sid].append(
+                {
+                    "lat": float(row["lat"]),
+                    "lon": float(row["lon"]),
+                    "wind_kts": float(row["wind_kts"]),
+                    "pressure_hpa": float(row["pressure_hpa"]),
+                    "dlat": float(row["dlat"]),
+                    "dlon": float(row["dlon"]),
+                    "dwind": float(row["dwind"]),
+                    "dpressure": float(row["dpressure"]),
+                    "intensity_class": INTENSITY_TO_IDX.get(row["intensity_class"], 0),
+                }
+            )
 
     # Strict storm-ID partitioning
     all_sids = list(storms.keys())
@@ -259,7 +258,10 @@ def prepare_sequential_track_dataset(seq_len: int = 4):
     val_sids = set(all_sids[n_train : n_train + n_val])
     test_sids = set(all_sids[n_train + n_val :])
 
-    logger.info(f"Storm track partitions: {len(train_sids)} train, {len(val_sids)} val, {len(test_sids)} test.")
+    logger.info(
+        f"Storm track partitions: {len(train_sids)} train, "
+        f"{len(val_sids)} val, {len(test_sids)} test."
+    )
 
     feature_keys = ["lat", "lon", "wind_kts", "pressure_hpa", "dlat", "dlon", "dwind", "dpressure"]
 
@@ -337,7 +339,7 @@ def prepare_sequential_track_dataset(seq_len: int = 4):
     )
 
     logger.info(
-        f"Forecast sequences generated: train={len(X_train):,}, val={len(X_val):,}, test={len(X_test):,}"
+        f"Forecast sequences: train={len(X_train):,}, " f"val={len(X_val):,}, test={len(X_test):,}"
     )
 
 
@@ -352,4 +354,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

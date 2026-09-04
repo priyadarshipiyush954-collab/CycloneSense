@@ -4,7 +4,7 @@ from fastapi.testclient import TestClient
 from PIL import Image
 
 from app.main import app
-from app.model import PATTERNS, classify_demo, forecast_baseline
+from app.model import PATTERNS, forecast_baseline
 
 client = TestClient(app)
 

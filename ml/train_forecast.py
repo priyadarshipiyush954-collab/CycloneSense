@@ -7,8 +7,6 @@ Saves best checkpoint to models/forecast_model.pt.
 
 import json
 import logging
-import math
-import os
 import time
 from pathlib import Path
 
@@ -96,7 +94,7 @@ def train_forecast_model():
         logger.error("Forecast training data not found. Please run prepare_dataset.py first.")
         return None
 
-    with open(stats_file, "r", encoding="utf-8") as sf:
+    with open(stats_file, encoding="utf-8") as sf:
         norm_stats = json.load(sf)
 
     tr_data = np.load(tr_file)
@@ -129,14 +127,18 @@ def train_forecast_model():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     logger.info(f"Using compute device: {device}")
 
-    model = CycloneTrackLSTM(input_dim=len(norm_stats["keys"]), hidden_dim=64, num_layers=2).to(device)
+    model = CycloneTrackLSTM(input_dim=len(norm_stats["keys"]), hidden_dim=64, num_layers=2).to(
+        device
+    )
 
     criterion_pos = nn.MSELoss()
     criterion_wind = nn.SmoothL1Loss()
     criterion_cls = nn.CrossEntropyLoss()
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=1e-4)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="min", factor=0.5, patience=2)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, mode="min", factor=0.5, patience=2
+    )
 
     best_track_mae = float("inf")
     start_time = time.time()
@@ -188,7 +190,7 @@ def train_forecast_model():
                 "intensity_classes": INTENSITY_CLASSES,
             }
             torch.save(checkpoint, CHECKPOINT_PATH)
-            logger.info(f"--> Saved best forecast checkpoint to {CHECKPOINT_PATH} (Track MAE: {best_track_mae:.1f} km)")
+            logger.info(f"--> Saved best forecast checkpoint (Track MAE: {best_track_mae:.1f} km)")
 
     elapsed = time.time() - start_time
     logger.info(f"Forecast model training completed in {elapsed:.1f} seconds.")
@@ -212,4 +214,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

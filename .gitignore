@@ -9,3 +9,6 @@ models/*.pt
 data/raw/*
 data/processed/*
 !.gitkeep
+.coverage
+coverage.xml
+

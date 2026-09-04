@@ -1,12 +1,11 @@
-"""
-Real Cyclone Data Downloader and Ingestion Pipeline
+"""Real Cyclone Data Downloader and Ingestion Pipeline.
+
 CycloneSense AI - North Indian Ocean & Global Best Track Data
 Downloads official NOAA/NCEI IBTrACS data and processes historical storm tracks.
 """
 
 import csv
 import logging
-import os
 import shutil
 import sys
 import urllib.request
@@ -17,7 +16,9 @@ logger = logging.getLogger(__name__)
 
 # NOAA IBTrACS official CSV endpoints
 NOAA_IBTRACS_NI_URL = (
-    "https://www.ncei.noaa.gov/data/international-best-track-archive-for-climate-stewardship-ibtracs/v04r01/access/csv/ibtracs.NI.list.v04r01.csv"
+    "https://www.ncei.noaa.gov/data/"
+    "international-best-track-archive-for-climate-stewardship-ibtracs/"
+    "v04r01/access/csv/ibtracs.NI.list.v04r01.csv"
 )
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
@@ -36,7 +37,10 @@ def download_file(url: str, dest_path: Path, timeout: int = 60) -> bool:
     req = urllib.request.Request(url, headers=headers)
 
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as response, open(temp_path, "wb") as out_file:
+        with (
+            urllib.request.urlopen(req, timeout=timeout) as response,
+            open(temp_path, "wb") as out_file,
+        ):
             total_size = int(response.headers.get("Content-Length", 0))
             downloaded = 0
             block_size = 1024 * 64
@@ -50,12 +54,15 @@ def download_file(url: str, dest_path: Path, timeout: int = 60) -> bool:
                 if total_size > 0:
                     percent = (downloaded / total_size) * 100
                     mb = downloaded / (1024 * 1024)
-                    sys.stdout.write(f"\rProgress: {mb:.1f} MB / {total_size / (1024 * 1024):.1f} MB ({percent:.1f}%)")
+                    tot_mb = total_size / (1024 * 1024)
+                    msg = f"\rProgress: {mb:.1f} MB / {tot_mb:.1f} MB ({percent:.1f}%)"
+                    sys.stdout.write(msg)
                     sys.stdout.flush()
 
             sys.stdout.write("\n")
         shutil.move(str(temp_path), str(dest_path))
-        logger.info(f"Successfully downloaded to {dest_path} ({dest_path.stat().st_size / (1024*1024):.2f} MB)")
+        sz_mb = dest_path.stat().st_size / (1024 * 1024)
+        logger.info(f"Successfully downloaded to {dest_path} ({sz_mb:.2f} MB)")
         return True
     except Exception as exc:
         if temp_path.exists():
@@ -90,20 +97,24 @@ def categorize_intensity(wind_kts: float) -> str:
         return "very_severe_cyclonic_storm"
 
 
+def _extract_col(row: list[str], col_indices: dict[str, int], name: str) -> str:
+    idx = col_indices.get(name)
+    if idx is not None and idx < len(row):
+        return row[idx].strip()
+    return ""
+
+
 def process_ibtracs_data(raw_csv_path: Path, output_csv_path: Path):
-    """
-    Parse NOAA IBTrACS data, extract North Indian Ocean storms,
-    calculate motion vectors, and save clean sequential tracks.
-    """
+    """Parse NOAA IBTrACS data and save clean sequential tracks."""
     output_csv_path.parent.mkdir(parents=True, exist_ok=True)
     logger.info(f"Parsing IBTrACS records from {raw_csv_path}...")
 
     storm_records = {}
 
-    with open(raw_csv_path, "r", encoding="utf-8", errors="ignore") as f:
+    with open(raw_csv_path, encoding="utf-8", errors="ignore") as f:
         reader = csv.reader(f)
         header = next(reader)
-        units_row = next(reader)  # Skip the IBTrACS units row
+        next(reader)  # Skip the IBTrACS units row
 
         col_indices = {name.strip(): i for i, name in enumerate(header)}
         required_cols = ["SID", "NAME", "ISO_TIME", "LAT", "LON"]
@@ -131,22 +142,15 @@ def process_ibtracs_data(raw_csv_path: Path, output_csv_path: Path):
             except ValueError:
                 continue
 
-            # Prioritize Regional Specialized Meteorological Centre (IMD New Delhi) or WMO/USA
-            def get_col_val(col_name):
-                idx = col_indices.get(col_name)
-                if idx is not None and idx < len(row):
-                    return row[idx].strip()
-                return ""
-
             wind_str = (
-                get_col_val("NEWDELHI_WIND")
-                or get_col_val("WMO_WIND")
-                or get_col_val("USA_WIND")
+                _extract_col(row, col_indices, "NEWDELHI_WIND")
+                or _extract_col(row, col_indices, "WMO_WIND")
+                or _extract_col(row, col_indices, "USA_WIND")
             )
             pres_str = (
-                get_col_val("NEWDELHI_PRES")
-                or get_col_val("WMO_PRES")
-                or get_col_val("USA_PRES")
+                _extract_col(row, col_indices, "NEWDELHI_PRES")
+                or _extract_col(row, col_indices, "WMO_PRES")
+                or _extract_col(row, col_indices, "USA_PRES")
             )
 
             try:
@@ -159,11 +163,10 @@ def process_ibtracs_data(raw_csv_path: Path, output_csv_path: Path):
             except ValueError:
                 pres = None
 
-            # Clean default estimates if missing
             if wind is None or wind <= 0:
-                wind = 30.0  # standard depression baseline
+                wind = 30.0
             if pres is None or pres <= 800 or pres >= 1050:
-                pres = 1000.0  # standard sea-level baseline
+                pres = 1000.0
 
             rec = {
                 "storm_id": sid,
@@ -181,13 +184,14 @@ def process_ibtracs_data(raw_csv_path: Path, output_csv_path: Path):
             storm_records[sid].append(rec)
             valid_rows += 1
 
-    logger.info(f"Processed {total_rows:,} raw rows. Found {len(storm_records):,} storms with {valid_rows:,} track points.")
+    logger.info(
+        f"Processed {total_rows:,} raw rows. "
+        f"Found {len(storm_records):,} storms with {valid_rows:,} points."
+    )
 
-    # Filter storms with at least 4 sequential observations (needed for temporal lag features)
     eligible_storms = {sid: pts for sid, pts in storm_records.items() if len(pts) >= 4}
-    logger.info(f"{len(eligible_storms):,} storms have >= 4 observations for sequence modeling.")
+    logger.info(f"{len(eligible_storms):,} storms have >= 4 observations.")
 
-    # Write processed sequential tracks with movement deltas
     out_headers = [
         "storm_id",
         "name",
@@ -209,7 +213,7 @@ def process_ibtracs_data(raw_csv_path: Path, output_csv_path: Path):
         writer = csv.DictWriter(out_f, fieldnames=out_headers)
         writer.writeheader()
 
-        for sid, pts in eligible_storms.items():
+        for _sid, pts in eligible_storms.items():
             pts.sort(key=lambda x: x["timestamp"])
             for i, p in enumerate(pts):
                 if i == 0:
@@ -224,7 +228,6 @@ def process_ibtracs_data(raw_csv_path: Path, output_csv_path: Path):
                     dwind = round(p["wind_kts"] - prev["wind_kts"], 1)
                     dpres = round(p["pressure_hpa"] - prev["pressure_hpa"], 1)
 
-                # Approximate speed in knots (60 nm per degree) assuming ~6-hour steps
                 distance_nm = ((dlat * 60) ** 2 + (dlon * 60) ** 2) ** 0.5
                 speed = round(distance_nm / 6.0, 1)
 
@@ -246,7 +249,10 @@ def process_ibtracs_data(raw_csv_path: Path, output_csv_path: Path):
                 writer.writerow(row_dict)
                 count_written += 1
 
-    logger.info(f"Successfully generated {output_csv_path} with {count_written:,} sequential points across {len(eligible_storms)} storms.")
+    logger.info(
+        f"Generated {output_csv_path} with {count_written:,} sequential points "
+        f"across {len(eligible_storms)} storms."
+    )
     return len(eligible_storms), count_written
 
 
@@ -261,7 +267,8 @@ def main():
             logger.error("Download failed. Please check network connection.")
             return False
     else:
-        logger.info(f"Using existing raw IBTrACS data at {RAW_FILE} ({RAW_FILE.stat().st_size / (1024*1024):.2f} MB)")
+        sz_mb = RAW_FILE.stat().st_size / (1024 * 1024)
+        logger.info(f"Using existing raw IBTrACS data at {RAW_FILE} ({sz_mb:.2f} MB)")
 
     process_ibtracs_data(RAW_FILE, PROCESSED_FILE)
     logger.info("Real data ingestion complete.")
@@ -270,4 +277,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

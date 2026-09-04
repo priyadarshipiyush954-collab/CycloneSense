@@ -29,9 +29,13 @@ INTENSITY_CLASSES = [
 class ConvBlock(nn.Module):
     def __init__(self, in_channels: int, out_channels: int, stride: int = 1):
         super().__init__()
-        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1, bias=False)
+        self.conv1 = nn.Conv2d(
+            in_channels, out_channels, kernel_size=3, stride=stride, padding=1, bias=False
+        )
         self.bn1 = nn.BatchNorm2d(out_channels)
-        self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=False)
+        self.conv2 = nn.Conv2d(
+            out_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=False
+        )
         self.bn2 = nn.BatchNorm2d(out_channels)
 
         if stride != 1 or in_channels != out_channels:
@@ -121,7 +125,9 @@ class CyclonePatternCNN(nn.Module):
         weights = torch.mean(self.gradients, dim=[2, 3], keepdim=True)
         cam = torch.sum(weights * self.activations, dim=1, keepdim=True)
         cam = F.relu(cam)
-        cam = F.interpolate(cam, size=(x.shape[2], x.shape[3]), mode="bilinear", align_corners=False)
+        cam = F.interpolate(
+            cam, size=(x.shape[2], x.shape[3]), mode="bilinear", align_corners=False
+        )
         cam = cam.squeeze().detach()
 
         max_val = cam.max()
@@ -178,4 +184,3 @@ class CycloneTrackLSTM(nn.Module):
         class_logits = self.class_head(last_hidden)
 
         return pos_pred, wind_pred, class_logits
-
