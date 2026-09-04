@@ -69,4 +69,3 @@ def predict_forecast(req: ForecastRequest):
         intensity_class=x[3],
         confidence=x[4],
     )
-
