@@ -83,8 +83,6 @@ def evaluate(model, dataloader, criterion, device):
     running_loss = 0.0
     correct = 0
     total = 0
-    all_preds = []
-    all_targets = []
 
     with torch.no_grad():
         for images, labels in dataloader:
@@ -97,12 +95,9 @@ def evaluate(model, dataloader, criterion, device):
             correct += (preds == labels).sum().item()
             total += labels.size(0)
 
-            all_preds.extend(preds.cpu().numpy().tolist())
-            all_targets.extend(labels.cpu().numpy().tolist())
-
     epoch_loss = running_loss / total if total > 0 else 0.0
     epoch_acc = correct / total if total > 0 else 0.0
-    return epoch_loss, epoch_acc, all_preds, all_targets
+    return epoch_loss, epoch_acc
 
 
 def train_vision_model():
@@ -148,7 +143,7 @@ def train_vision_model():
     logger.info("Starting training loop...")
     for epoch in range(1, NUM_EPOCHS + 1):
         tr_loss, tr_acc = train_epoch(model, train_loader, criterion, optimizer, device)
-        va_loss, va_acc, _, _ = evaluate(model, val_loader, criterion, device)
+        va_loss, va_acc = evaluate(model, val_loader, criterion, device)
         scheduler.step(va_loss)
 
         logger.info(
@@ -176,11 +171,10 @@ def train_vision_model():
     elapsed = time.time() - start_time
     logger.info(f"Training completed in {elapsed:.1f} seconds.")
 
-    # Evaluate on held-out test set
     if CHECKPOINT_PATH.exists():
         ckpt = torch.load(CHECKPOINT_PATH, map_location=device, weights_only=False)
         model.load_state_dict(ckpt["model_state_dict"])
-        te_loss, te_acc, preds, targets = evaluate(model, test_loader, criterion, device)
+        te_loss, te_acc = evaluate(model, test_loader, criterion, device)
         logger.info(f"Final Test Evaluation: Loss: {te_loss:.4f} | Accuracy: {te_acc * 100:.1f}%")
 
     return CHECKPOINT_PATH
