@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from PIL import UnidentifiedImageError
 
 from .model import PATTERNS, classify_demo, forecast
+from .model import PATTERNS, classify_demo, classify_image, forecast
 from .schemas import ForecastRequest, ForecastResponse
 
 app = FastAPI(title="CycloneSense AI API", version="1.0.0")
@@ -36,6 +37,7 @@ async def predict_pattern(file: UploadFile = File(...)):  # noqa: B008
 
     try:
         label, confidence = classify_demo(data)
+        label, confidence, model_name = classify_image(data)
     except (UnidentifiedImageError, OSError, ValueError) as exc:
         raise HTTPException(status_code=400, detail=f"Invalid image: {exc}") from exc
 
@@ -43,6 +45,7 @@ async def predict_pattern(file: UploadFile = File(...)):  # noqa: B008
         "pattern": label,
         "confidence": confidence,
         "model": "demo-morphology-baseline",
+        "model": model_name,
         "disclaimer": "Prototype result; not an official warning.",
     }
 
