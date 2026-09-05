@@ -1,5 +1,5 @@
-from io import BytesIO
 import logging
+from io import BytesIO
 from pathlib import Path
 
 import numpy as np
@@ -59,10 +59,12 @@ def get_vision_model():
 
         _vision_model = model
         _vision_meta = checkpoint
-        logger.info(f"Loaded trained PyTorch CyclonePatternCNN from {VISION_MODEL_PATH} onto {device}")
         logger.info(
-    f"Loaded trained PyTorch CyclonePatternCNN from {VISION_MODEL_PATH} onto {device}"
-)
+            f"Loaded trained PyTorch CyclonePatternCNN from {VISION_MODEL_PATH} onto {device}"
+        )
+        logger.info(
+            f"Loaded trained PyTorch CyclonePatternCNN from {VISION_MODEL_PATH} onto {device}"
+        )
         return _vision_model, _vision_meta
     except Exception as exc:
         logger.warning(f"Could not load PyTorch vision model: {exc}. Falling back to baseline.")
@@ -96,10 +98,12 @@ def get_forecast_model():
 
         _forecast_model = model
         _forecast_meta = checkpoint
-        logger.info(f"Loaded trained PyTorch CycloneTrackLSTM from {FORECAST_MODEL_PATH} onto {device}")
         logger.info(
-    f"Loaded trained PyTorch CycloneTrackLSTM from {FORECAST_MODEL_PATH} onto {device}"
-)
+            f"Loaded trained PyTorch CycloneTrackLSTM from {FORECAST_MODEL_PATH} onto {device}"
+        )
+        logger.info(
+            f"Loaded trained PyTorch CycloneTrackLSTM from {FORECAST_MODEL_PATH} onto {device}"
+        )
         return _forecast_model, _forecast_meta
     except Exception as exc:
         logger.warning(f"Could not load PyTorch forecast model: {exc}. Falling back to baseline.")
@@ -153,11 +157,13 @@ def classify_image(data: bytes) -> tuple[str, float, str]:
         mean = meta.get("mean", [0.485, 0.456, 0.406])
         std = meta.get("std", [0.229, 0.224, 0.225])
 
-        tf = transforms.Compose([
-            transforms.Resize((img_size, img_size)),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=mean, std=std),
-        ])
+        tf = transforms.Compose(
+            [
+                transforms.Resize((img_size, img_size)),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=mean, std=std),
+            ]
+        )
         tf = transforms.Compose(
             [
                 transforms.Resize((img_size, img_size)),
@@ -210,18 +216,26 @@ def forecast(obs):
             lat = getattr(o, "lat", o.get("lat") if isinstance(o, dict) else 0.0)
             lon = getattr(o, "lon", o.get("lon") if isinstance(o, dict) else 0.0)
             wind = getattr(o, "wind_kts", o.get("wind_kts") if isinstance(o, dict) else 0.0)
-            pres = getattr(o, "pressure_hpa", o.get("pressure_hpa") if isinstance(o, dict) else 1000.0)
             pres = getattr(
-    o, "pressure_hpa", o.get("pressure_hpa") if isinstance(o, dict) else 1000.0
-)
+                o, "pressure_hpa", o.get("pressure_hpa") if isinstance(o, dict) else 1000.0
+            )
+            pres = getattr(
+                o, "pressure_hpa", o.get("pressure_hpa") if isinstance(o, dict) else 1000.0
+            )
             if i == 0:
                 dlat, dlon, dwind, dpres = 0.0, 0.0, 0.0, 0.0
             else:
                 prev = obs[i - 1]
                 p_lat = getattr(prev, "lat", prev.get("lat") if isinstance(prev, dict) else 0.0)
                 p_lon = getattr(prev, "lon", prev.get("lon") if isinstance(prev, dict) else 0.0)
-                p_wind = getattr(prev, "wind_kts", prev.get("wind_kts") if isinstance(prev, dict) else 0.0)
-                p_pres = getattr(prev, "pressure_hpa", prev.get("pressure_hpa") if isinstance(prev, dict) else 1000.0)
+                p_wind = getattr(
+                    prev, "wind_kts", prev.get("wind_kts") if isinstance(prev, dict) else 0.0
+                )
+                p_pres = getattr(
+                    prev,
+                    "pressure_hpa",
+                    prev.get("pressure_hpa") if isinstance(prev, dict) else 1000.0,
+                )
                 p_wind = getattr(
                     prev, "wind_kts", prev.get("wind_kts") if isinstance(prev, dict) else 0.0
                 )
