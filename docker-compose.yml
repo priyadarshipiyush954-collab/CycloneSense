@@ -1,0 +1,28 @@
+version: "3.8"
+
+services:
+  # Web Dashboard & High-Performance Proxy (accessible on any device at port 3000)
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      - VITE_API_URL=http://api:8000
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  # Native Python FastAPI & Machine Learning Engine (port 8000)
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.python
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped

@@ -38,13 +38,13 @@ Docker + GitHub Actions CI/CD
         ↓
 GHCR → Cloud Deployment
         ↓
-Monitoring & SIH Documentation
+Operational Monitoring & Technical Documentation
 
 CycloneSense AI is an **Artificial Intelligence / Machine Learning based disaster-management platform** designed to identify, classify, and predict tropical cyclone patterns using **multi-source satellite observations and meteorological data**.
 
 The platform combines **Computer Vision, Deep Learning, Remote Sensing, Time-Series Forecasting, Explainable AI, and MLOps** into a single deployable system.
 
-> 🚀 Developed as a **Smart India Hackathon (SIH)** project.
+> 🛰️ Production-grade operational architecture for tropical cyclone tracking and intensity prognosis.
 
 ---
 
@@ -561,7 +561,7 @@ Production
 
 # 📊 ML Training Pipeline
 
-For the final SIH model:
+For the production model:
 
 ```text
 Raw Satellite Data
@@ -749,7 +749,7 @@ CycloneSense AI can be expanded into a complete operational decision-support pla
 
 ---
 
-# 🏆 SIH Impact
+# 🏆 Operational Impact
 
 CycloneSense AI can support disaster-management workflows by providing:
 

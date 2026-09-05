@@ -203,7 +203,7 @@ ISSUED BY: CYCLONESENSE OPERATIONAL DISASTER INTELLIGENCE DESK`;
               MLOps Command, Production Benchmarks & Hazard Dissemination
             </h2>
             <p className="text-xs text-slate-400 font-mono-code">
-              Smart India Hackathon Operational Telemetry, Swagger Sandbox & WMO/IMD Exporters
+              Operational Cyclone Telemetry, Python FastAPI Backend & Multi-Device Access
             </p>
           </div>
         </div>
@@ -216,12 +216,12 @@ ISSUED BY: CYCLONESENSE OPERATIONAL DISASTER INTELLIGENCE DESK`;
       </div>
 
       <div className="p-5 space-y-6">
-        {/* Production Metric Scorecards (Section 5.4 D2) */}
+        {/* Production Metric Scorecards */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-mono-code text-cyan-300 font-bold flex items-center gap-1.5">
               <Activity className="w-3.5 h-3.5" />
-              PRODUCTION BENCHMARK SCORECARDS (SIH SPECIFICATIONS)
+              OPERATIONAL PRODUCTION BENCHMARK SCORECARDS
             </span>
             <span className="text-[10px] font-mono-code text-emerald-400">ALL TARGETS EXCEEDED</span>
           </div>

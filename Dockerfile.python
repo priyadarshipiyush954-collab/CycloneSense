@@ -1,0 +1,26 @@
+# CycloneSense AI - Python FastAPI & ML Engine Dockerfile
+FROM python:3.10-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python requirements
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application, ML, and data processing code
+COPY app/ ./app/
+COPY ml/ ./ml/
+COPY data/ ./data/
+COPY tests/ ./tests/
+COPY run_server.py .
+
+EXPOSE 8000
+
+# Bind to 0.0.0.0 so any device on the network can access the API
+CMD ["python", "run_server.py", "--host", "0.0.0.0", "--port", "8000"]

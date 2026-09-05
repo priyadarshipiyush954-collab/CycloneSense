@@ -93,7 +93,7 @@ export const App: React.FC = () => {
               <div className="flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center gap-1.5 text-xs font-mono-code px-2.5 py-1 rounded bg-cyan-950/80 text-cyan-300 border border-cyan-800">
                   <Radio className="w-3 h-3 text-cyan-400 animate-pulse" />
-                  SMART INDIA HACKATHON · SIH-2026 OPERATIONAL SUITE
+                  OPERATIONAL METEOROLOGICAL INTELLIGENCE SUITE
                 </span>
                 <span className="text-xs font-mono-code text-slate-400 bg-slate-900 px-2.5 py-1 rounded border border-slate-800">
                   NIO BASIN (BAY OF BENGAL & ARABIAN SEA)
@@ -111,7 +111,7 @@ export const App: React.FC = () => {
               <p className="text-sm text-slate-300 leading-relaxed max-w-2xl">
                 Unified meteorological command dashboard combining Vision Transformers (ViT-B/16),
                 recurrent temporal extrapolation (Bi-LSTM), and Explainable AI (Grad-CAM) for real-time
-                cyclogenesis verification, Dvorak T-number estimation, and 72-hour landfall hazard projection.
+                cyclogenesis verification, Dvorak T-number estimation, and 72-hour cyclone track and intensity projection.
               </p>
 
               {/* Action Jump Buttons */}
@@ -135,7 +135,7 @@ export const App: React.FC = () => {
                   className="px-4 py-2 rounded-lg bg-[#0c2236] hover:bg-[#12304d] text-cyan-300 border border-cyan-700/60 font-medium text-xs flex items-center gap-2 transition"
                 >
                   <Activity className="w-4 h-4" />
-                  <span>Trajectory & Landfall</span>
+                  <span>Track & Intensity</span>
                 </button>
               </div>
 
@@ -259,7 +259,7 @@ export const App: React.FC = () => {
           <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#142e47] pb-3">
             <div className="flex items-center gap-2">
               <span className="text-cyan-400 font-bold">CycloneSense AI</span>
-              <span>· Version 1.2.0 (SIH Track: Remote Sensing × Disaster Intelligence)</span>
+              <span>· Version 1.2.0 (Operational Track: Remote Sensing × Cyclone Intelligence)</span>
             </div>
             <div className="flex items-center gap-3">
               <span className="text-emerald-400">WMO GTS Telemetry Compliant</span>

@@ -445,7 +445,7 @@ export const TrajectoryForecast: React.FC<TrajectoryForecastProps> = ({
             <div className="space-y-1">
               <div className="flex items-center gap-2 text-red-400 text-xs font-mono-code font-bold">
                 <MapPin className="w-4 h-4 animate-bounce" />
-                <span>LANDFALL INTERCEPT PROTOCOL ACTIVE</span>
+                <span>CYCLONE COASTAL CROSSING & INTERCEPT PROTOCOL</span>
               </div>
               <h3 className="text-base font-bold text-white">
                 {forecast.landfall_intercept.location}
