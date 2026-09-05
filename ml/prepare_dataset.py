@@ -209,6 +209,7 @@ def prepare_image_dataset(samples_per_class: int = 120):
 
     total_imgs = sum(counts.values())
     logger.info(
+        f"Morphology images generated: train={counts['train']}, val={counts['val']}, test={counts['test']} (Total={sum(counts.values())})"
         f"Morphology images generated: train={counts['train']}, "
         f"val={counts['val']}, test={counts['test']} (Total={total_imgs})"
     )
@@ -259,6 +260,7 @@ def prepare_sequential_track_dataset(seq_len: int = 4):
     test_sids = set(all_sids[n_train + n_val :])
 
     logger.info(
+        f"Storm track partitions: {len(train_sids)} train, {len(val_sids)} val, {len(test_sids)} test."
         f"Storm track partitions: {len(train_sids)} train, "
         f"{len(val_sids)} val, {len(test_sids)} test."
     )
@@ -339,6 +341,7 @@ def prepare_sequential_track_dataset(seq_len: int = 4):
     )
 
     logger.info(
+        f"Forecast sequences generated: train={len(X_train):,}, val={len(X_val):,}, test={len(X_test):,}"
         f"Forecast sequences: train={len(X_train):,}, " f"val={len(X_val):,}, test={len(X_test):,}"
     )
 
