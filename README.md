@@ -361,22 +361,21 @@ http://localhost:8000/docs
 
 ---
 
-# 🌐 Frontend
+# 🌐 Web Application & Dashboard
 
-Open a second terminal:
+Open your terminal in the `CycloneSense` repository root:
 
 ```bash
-cd frontend
-
+# Make sure you are in the repository root (e.g. D:\CycloneSense)
 npm install
 
 npm run dev
 ```
 
-Frontend:
+The application runs at:
 
 ```text
-http://localhost:5173
+http://localhost:3000
 ```
 
 Set the backend URL if required:

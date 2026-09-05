@@ -1,0 +1,12 @@
+{
+  "name": "cyclonesense-frontend-wrapper",
+  "version": "1.2.0",
+  "private": true,
+  "description": "Forwarding package.json for users navigating into the frontend directory",
+  "scripts": {
+    "dev": "npm --prefix .. run dev",
+    "build": "npm --prefix .. run build",
+    "lint": "npm --prefix .. run lint",
+    "start": "npm --prefix .. run start"
+  }
+}
