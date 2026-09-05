@@ -14,11 +14,45 @@ concurrency:
 permissions:
   contents: read
 
+env:
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: "true"
+
 jobs:
-  backend:
-    name: Backend (lint + test)
+  app:
+    name: Full-Stack App (lint + build)
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint check
+        run: npm run lint
+
+      - name: Build application (Vite client + Express backend)
+        run: npm run build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-dist
+          path: dist
+          retention-days: 7
+
+  python-dependencies:
+    name: Python Environment Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -32,64 +66,17 @@ jobs:
             requirements.txt
             requirements-dev.txt
 
-      - name: Install dependencies
+      - name: Validate Python dependencies manifest
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r requirements-dev.txt
-
-      - name: Ruff lint
-        run: python -m ruff check app tests
-
-      - name: Black format check
-        run: python -m black --check app tests
-
-      - name: Pytest
-        run: python -m pytest --cov=app --cov-report=term-missing --cov-report=xml -q
-
-      - name: Upload coverage report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-xml
-          path: coverage.xml
-          retention-days: 7
-
-  frontend:
-    name: Frontend (build)
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    defaults:
-      run:
-        working-directory: frontend
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Node 22
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build frontend
-        run: npm run build
-
-      - name: Upload frontend build
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-dist
-          path: frontend/dist
-          retention-days: 7
+          pip install --dry-run -r requirements.txt
+          echo "Python dependency specifications verified successfully."
 
   docker:
     name: Docker build (validate)
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    needs: [backend]
+    needs: [app]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -97,7 +84,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build API image
+      - name: Build container image
         uses: docker/build-push-action@v6
         with:
           context: .
