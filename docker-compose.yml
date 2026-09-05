@@ -8,7 +8,7 @@ services:
       - "8000:8000"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/docs')"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -17,11 +17,19 @@ services:
       - PYTHONUNBUFFERED=1
     volumes:
       - ./app:/app/app
+      - ./ml:/app/ml
+      - ./models:/app/models
     develop:
       watch:
         - path: ./app
           action: sync
           target: /app/app
+        - path: ./ml
+          action: sync
+          target: /app/ml
+        - path: ./models
+          action: sync
+          target: /app/models
 
   frontend:
     build:
