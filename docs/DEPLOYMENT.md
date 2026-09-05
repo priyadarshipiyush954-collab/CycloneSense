@@ -1,14 +1,110 @@
-# Deployment
-## Backend
-Deploy the Docker service to Render/Railway/Fly.io. Health check: `/health`.
+# 🚀 Cloud Deployment Guide: Google Cloud Run
 
-## Full-Stack Web Application
-Deploy the application or static client:
-- build: `npm run build`
-- output: `dist` (static files in `dist/`, Express server bundled in `dist/server.cjs`)
-- start command: `npm start` (or `node dist/server.cjs`)
+This guide explains how to deploy CycloneSense AI to **Google Cloud Run** with public access, resolving the *"You don't have access to this page"* error when accessing from mobile devices or other browsers.
 
-## CI/CD
-GitHub Actions publishes `ghcr.io/<owner>/<repo>:latest` on `main`. Add `RENDER_DEPLOY_HOOK` as a GitHub Actions secret to trigger a Render deploy.
+---
 
-Never commit cloud credentials.
+## 🛑 Why "You don't have access to this page" Happens
+
+When you run an app in the AI Studio development environment, the URL looks like:
+`https://ais-dev-<hash>-<project-number>.<region>.run.app`
+
+- **`ais-dev-...`** is a **private sandboxed development URL** protected by Google Cloud Identity-Aware Proxy (IAP) / Cloud Run IAM.
+- Opening this URL on your phone or sending it to another person results in:
+  > **"You don't have access to this page"** / **HTTP 403 Forbidden**
+  because their browser is not signed in with the Google developer account that created the workspace.
+
+---
+
+## ✅ Solution 1: Deploy Directly to Google Cloud Run (Recommended for Production)
+
+Deploying CycloneSense AI directly to your own Google Cloud Run service makes it publicly accessible with your own permanent HTTPS URL.
+
+### Option A: 1-Line Command (Direct from Source)
+
+Make sure you have [Google Cloud CLI (`gcloud`)](https://cloud.google.com/sdk/docs/install) installed and initialized:
+
+```bash
+# 1. Login and set your Google Cloud Project
+gcloud auth login
+gcloud config set project <YOUR_GCP_PROJECT_ID>
+
+# 2. Deploy directly from source to Cloud Run with public unauthenticated access:
+gcloud run deploy cyclonesense-ai \
+  --source . \
+  --region us-central1 \
+  --platform managed \
+  --port 3000 \
+  --memory 1Gi \
+  --cpu 1 \
+  --allow-unauthenticated
+```
+
+> 🔑 **Key Flag:** `--allow-unauthenticated` is what makes the website open on **any mobile phone, tablet, or browser without asking for login**!
+
+### Option B: Using the Included Shell / PowerShell Scripts
+
+The project includes pre-configured deployment scripts:
+
+**On Linux / macOS:**
+```bash
+chmod +x deploy-cloudrun.sh
+./deploy-cloudrun.sh
+```
+
+**On Windows (PowerShell):**
+```powershell
+.\deploy-cloudrun.ps1
+```
+
+### Option C: Using Google Cloud Build (`cloudbuild.yaml`)
+
+Run Cloud Build to containerize and deploy:
+```bash
+gcloud builds submit --config cloudbuild.yaml
+```
+
+---
+
+## ✅ Solution 2: Instant Public Link via AI Studio "Share" Button
+
+If you want to view this app right now on your phone without installing the `gcloud` CLI:
+
+1. Look at the top navigation bar of **Google AI Studio**.
+2. Click the **"Share"** button in the upper-right corner.
+3. Copy the generated preview link (starts with `https://ais-pre-...`).
+4. Paste that link into Safari, Chrome, or Firefox on your mobile phone.
+5. The `ais-pre-...` link is publicly shared and does **not** block non-authenticated devices.
+
+---
+
+## 📱 Solution 3: Local Network (Wi-Fi) Access
+
+To run locally on your laptop and access from a phone on the same Wi-Fi:
+
+1. Start the server on your computer:
+   ```bash
+   npm run dev
+   ```
+2. Find your computer's local IP address:
+   - **Windows:** Run `ipconfig` (look for IPv4 address, e.g., `192.168.1.50`)
+   - **macOS / Linux:** Run `ifconfig` or `ip a` (look for `inet`, e.g., `192.168.1.50`)
+3. On your phone's browser, navigate to:
+   ```
+   http://192.168.1.50:3000
+   ```
+
+---
+
+## 🐳 Docker Deployment Details
+
+The root `Dockerfile` is built with a lightweight Node 22 Alpine multi-stage build:
+- **Build stage:** `npm ci` + `npm run build` (builds both Vite frontend and bundles Express server into `dist/server.cjs`)
+- **Runtime stage:** Node 22 Alpine, copies `dist/`, exposes port 3000, and runs `node dist/server.cjs`.
+
+To test the container locally:
+```bash
+docker build -t cyclonesense-ai .
+docker run -p 3000:3000 cyclonesense-ai
+```
+Open `http://localhost:3000`.

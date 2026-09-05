@@ -1,0 +1,28 @@
+steps:
+  # 1. Build Docker container image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/cyclonesense-ai:$COMMIT_SHA', '.']
+
+  # 2. Push image to Google Container Registry / Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/cyclonesense-ai:$COMMIT_SHA']
+
+  # 3. Deploy to Google Cloud Run with public access (--allow-unauthenticated)
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'cyclonesense-ai'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/cyclonesense-ai:$COMMIT_SHA'
+      - '--region'
+      - 'us-central1'
+      - '--platform'
+      - 'managed'
+      - '--port'
+      - '3000'
+      - '--allow-unauthenticated'
+
+images:
+  - 'gcr.io/$PROJECT_ID/cyclonesense-ai:$COMMIT_SHA'
