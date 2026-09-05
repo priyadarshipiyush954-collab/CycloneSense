@@ -1,0 +1,161 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: #050d18;
+  color: #e2edf5;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #050d18;
+  overflow-x: hidden;
+}
+
+.font-mono-code {
+  font-family: 'DM Mono', 'JetBrains Mono', monospace;
+}
+
+/* Storm Hero Spinning Animations */
+.storm {
+  width: 340px;
+  height: 340px;
+  border-radius: 50%;
+  margin: auto;
+  position: relative;
+  background: radial-gradient(circle, #06111f 0 9%, #69e8d033 10%, #12384b 19%, #071522 20% 30%, #164458 31% 38%, #06111f 39% 48%, #164152 49% 55%, #06111f 56%);
+  box-shadow: 0 0 100px #69e8d022;
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.6s ease;
+  will-change: transform;
+}
+
+.storm:hover {
+  transform: scale(1.03);
+  box-shadow: 0 0 125px #69e8d038;
+}
+
+.storm i {
+  position: absolute;
+  border: 1px solid #69e8d044;
+  border-radius: 50%;
+  pointer-events: none;
+  transition: border-color 0.4s ease;
+  will-change: transform;
+}
+
+.storm:hover i {
+  border-color: #69e8d077;
+}
+
+.storm i:nth-child(1) {
+  inset: 9%;
+  transform: rotate(35deg) skewX(-18deg);
+  animation: cycloneSpinOuter 26s linear infinite;
+}
+
+.storm i:nth-child(2) {
+  inset: 20%;
+  transform: rotate(-35deg) skewX(-25deg);
+  animation: cycloneSpinMid 17s linear infinite;
+}
+
+.storm i:nth-child(3) {
+  inset: 31%;
+  transform: rotate(60deg) skewX(-20deg);
+  animation: cycloneSpinInner 10s linear infinite;
+}
+
+.storm b {
+  position: absolute;
+  inset: 44%;
+  border: 4px solid #69e8d0;
+  border-radius: 50%;
+  box-shadow: 0 0 30px #69e8d0;
+  animation: eyePulse 3.5s ease-in-out infinite alternate;
+  transition: box-shadow 0.4s ease, border-color 0.4s ease;
+  will-change: transform, box-shadow, border-color;
+}
+
+.storm:hover b {
+  box-shadow: 0 0 45px #8ff1df, inset 0 0 14px #8ff1df88;
+}
+
+@keyframes cycloneSpinOuter {
+  from {
+    transform: rotate(35deg) skewX(-18deg);
+  }
+  to {
+    transform: rotate(-325deg) skewX(-18deg);
+  }
+}
+
+@keyframes cycloneSpinMid {
+  from {
+    transform: rotate(-35deg) skewX(-25deg);
+  }
+  to {
+    transform: rotate(-395deg) skewX(-25deg);
+  }
+}
+
+@keyframes cycloneSpinInner {
+  from {
+    transform: rotate(60deg) skewX(-20deg);
+  }
+  to {
+    transform: rotate(-300deg) skewX(-20deg);
+  }
+}
+
+@keyframes eyePulse {
+  0% {
+    border-color: #69e8d0;
+    box-shadow: 0 0 25px #69e8d088, inset 0 0 6px #69e8d033;
+    transform: scale(0.98);
+  }
+  100% {
+    border-color: #8ff1df;
+    box-shadow: 0 0 42px #8ff1df, inset 0 0 14px #8ff1df99;
+    transform: scale(1.03);
+  }
+}
+
+@keyframes radarSweep {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.radar-sweep {
+  animation: radarSweep 6s linear infinite;
+  transform-origin: center center;
+}
+
+/* Custom meteorological scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #081524;
+}
+::-webkit-scrollbar-thumb {
+  background: #1e3a55;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #32648d;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .storm i,
+  .storm b,
+  .radar-sweep {
+    animation: none !important;
+  }
+}
