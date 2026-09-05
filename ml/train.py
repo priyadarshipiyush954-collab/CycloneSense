@@ -1,79 +1,87 @@
-"""PyTorch Training Pipeline for CycloneSense AI.
+"""Train the CycloneSense satellite-image classifier.
 
-Trains:
-1. Vision Transformer (ViT-B/16) for Dvorak 7-class morphological pattern classification.
-2. Bidirectional LSTM for 72-hour track and intensity forecasting.
+Example:
+    python ml/train.py --data-dir data/processed --epochs 10 --batch-size 16
 
-Usage:
-    python ml/train.py --model vit --epochs 25 --batch-size 16 --lr 1e-4
-    python ml/train.py --model bilstm --epochs 50 --batch-size 32 --lr 5e-4
+The dataset must contain real labeled images under train/ and val/ folders.
 """
 
-import os
-import sys
+from __future__ import annotations
+
 import argparse
-import time
+from pathlib import Path
+
+import torch
+from torch import nn
+from torch.utils.data import DataLoader
+
+from ml.dataset import create_datasets
+from ml.model import build_model, save_checkpoint
+
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="CycloneSense AI Training Engine")
-    parser.add_argument("--model", choices=["vit", "bilstm"], default="vit", help="Target architecture to train")
-    parser.add_argument("--epochs", type=int, default=10, help="Number of training epochs")
-    parser.add_argument("--batch-size", type=int, default=16, help="Minibatch size")
-    parser.add_argument("--lr", type=float, default=1e-4, help="Initial learning rate")
-    parser.add_argument("--device", default="cuda" if sys.platform != "darwin" else "cpu", help="Computation device")
-    parser.add_argument("--output-dir", default="models", help="Directory to persist checkpoints")
-    return parser.parse_args()
+    p = argparse.ArgumentParser()
+    p.add_argument("--data-dir", default="data/processed")
+    p.add_argument("--epochs", type=int, default=10)
+    p.add_argument("--batch-size", type=int, default=16)
+    p.add_argument("--lr", type=float, default=1e-4)
+    p.add_argument("--device", default=None)
+    p.add_argument("--output", default="models/cyclonesense_resnet18.pt")
+    return p.parse_args()
 
 
-def train_vit(args):
-    """Executes training loop for Vision Transformer Dvorak Classifier."""
-    print(f"[*] Initializing Vision Transformer (ViT-B/16) on device: {args.device}")
-    print(f"[*] Epochs: {args.epochs} | Batch Size: {args.batch_size} | Learning Rate: {args.lr}")
-    print("[*] Target Classes: [clear, developing, curved_band, CDO, eye, sheared, dissipating]")
-
-    os.makedirs(args.output_dir, exist_ok=True)
-    best_f1 = 0.942
-
-    for epoch in range(1, args.epochs + 1):
-        time.sleep(0.1)  # Simulated training step
-        loss = max(0.12, 0.98 - (epoch * 0.08))
-        acc = min(96.4, 78.5 + (epoch * 1.8))
-        f1 = min(0.955, 0.77 + (epoch * 0.018))
-        print(f"Epoch [{epoch:02d}/{args.epochs:02d}] | Loss: {loss:.4f} | Top-1 Accuracy: {acc:.2f}% | Macro F1: {f1:.4f}")
-
-    checkpoint_path = os.path.join(args.output_dir, "vit_dvorak_v1.pt")
-    with open(checkpoint_path, "w") as f:
-        f.write(f"# CycloneSense ViT-B/16 Checkpoint\n# Epochs: {args.epochs}\n# Best F1: {best_f1}\n")
-    print(f"[✓] ViT Model training complete. Checkpoint saved to: {checkpoint_path}")
-
-
-def train_bilstm(args):
-    """Executes training loop for Recurrent Bi-LSTM Trajectory & Intensity Predictor."""
-    print(f"[*] Initializing Recurrent Bi-LSTM on device: {args.device}")
-    print(f"[*] Sequence Input: 4 fixes (T-18h, T-12h, T-6h, T-0h) -> Output: 5 fixes (+12h to +72h)")
-    print(f"[*] Multi-task Loss: Haversine Geodesic Distance Loss + Pressure/Wind MSE")
-
-    os.makedirs(args.output_dir, exist_ok=True)
-
-    for epoch in range(1, args.epochs + 1):
-        time.sleep(0.1)
-        track_mae_24h = max(39.5, 75.0 - (epoch * 3.5))
-        wind_mae = max(4.8, 12.0 - (epoch * 0.7))
-        press_rmse = max(3.9, 9.5 - (epoch * 0.5))
-        print(f"Epoch [{epoch:02d}/{args.epochs:02d}] | 24h Track MAE: {track_mae_24h:.1f} km | Wind MAE: {wind_mae:.1f} kts | Press RMSE: {press_rmse:.1f} hPa")
-
-    checkpoint_path = os.path.join(args.output_dir, "bilstm_trajectory_v1.pt")
-    with open(checkpoint_path, "w") as f:
-        f.write(f"# CycloneSense Bi-LSTM Checkpoint\n# Epochs: {args.epochs}\n# 24h Track MAE: 42.1 km\n")
-    print(f"[✓] Bi-LSTM Model training complete. Checkpoint saved to: {checkpoint_path}")
+def evaluate(model, loader, criterion, device):
+    model.eval()
+    total_loss = correct = total = 0
+    with torch.no_grad():
+        for images, labels in loader:
+            images, labels = images.to(device), labels.to(device)
+            logits = model(images)
+            total_loss += criterion(logits, labels).item() * labels.size(0)
+            correct += (logits.argmax(1) == labels).sum().item()
+            total += labels.size(0)
+    return total_loss / max(total, 1), correct / max(total, 1)
 
 
 def main():
     args = parse_args()
-    if args.model == "vit":
-        train_vit(args)
-    else:
-        train_bilstm(args)
+    train_ds, val_ds = create_datasets(args.data_dir)
+    train_loader = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True, num_workers=0)
+    val_loader = DataLoader(val_ds, batch_size=args.batch_size, shuffle=False, num_workers=0)
+
+    model, device = build_model(pretrained=True, device=args.device)
+    criterion = nn.CrossEntropyLoss()
+    optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4)
+    best_acc = 0.0
+
+    print(f"Device: {device}")
+    print(f"Classes: {train_ds.classes}")
+    print(f"Train images: {len(train_ds)} | Validation images: {len(val_ds)}")
+
+    for epoch in range(1, args.epochs + 1):
+        model.train()
+        running_loss = correct = total = 0
+        for images, labels in train_loader:
+            images, labels = images.to(device), labels.to(device)
+            optimizer.zero_grad(set_to_none=True)
+            logits = model(images)
+            loss = criterion(logits, labels)
+            loss.backward()
+            optimizer.step()
+            running_loss += loss.item() * labels.size(0)
+            correct += (logits.argmax(1) == labels).sum().item()
+            total += labels.size(0)
+
+        val_loss, val_acc = evaluate(model, val_loader, criterion, device)
+        train_acc = correct / max(total, 1)
+        print(f"Epoch {epoch:02d}/{args.epochs} | train_loss={running_loss/max(total,1):.4f} train_acc={train_acc:.3f} val_loss={val_loss:.4f} val_acc={val_acc:.3f}")
+
+        if val_acc > best_acc:
+            best_acc = val_acc
+            save_checkpoint(model, args.output, train_ds.classes)
+            print(f"Saved best checkpoint: {Path(args.output)}")
+
+    print(f"Training complete. Best validation accuracy: {best_acc:.3f}")
 
 
 if __name__ == "__main__":
