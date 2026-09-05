@@ -1,5 +1,5 @@
-"""
-Dataset Preparation & Preprocessing Pipeline
+"""Dataset Preparation & Preprocessing Pipeline.
+
 CycloneSense AI - Morphology Classification & Track Forecasting Datasets
 Prepares:
 1. Satellite morphology imagery (train/val/test split strictly by storm ID).
@@ -48,20 +48,11 @@ INTENSITY_TO_IDX = {c: i for i, c in enumerate(INTENSITY_CLASSES)}
 def synthesize_realistic_satellite_scene(
     pattern: str, size: int = 128, seed: int = 42
 ) -> Image.Image:
-    """
-    Synthesize physical infrared (IR) satellite imagery based on Dvorak
-    morphology and thermal brightness temperatures.
-    Channels:
-      Red: Infrared Channel (Cold tops appear bright white/cyan)
-      Green: Water Vapor / Mid-level moisture
-      Blue: Visible / Texture depth
-    """
+    """Synthesize physical infrared (IR) satellite imagery based on Dvorak morphology."""
     rng = random.Random(seed)
     np_rng = np.random.RandomState(seed)
 
-    # Base background: warm ocean surface (IR warm = low brightness in enhanced IR)
     base = np.full((size, size, 3), [28, 35, 48], dtype=np.float32)
-    # Add subtle ocean/atmospheric background noise
     base += np_rng.normal(0, 4, (size, size, 3))
 
     cx, cy = size / 2.0, size / 2.0
@@ -70,7 +61,6 @@ def synthesize_realistic_satellite_scene(
     angle = np.arctan2(y - cy, x - cx)
 
     if pattern == "clear":
-        # Sparse small trade cumulus clouds
         num_clouds = rng.randint(4, 9)
         for _ in range(num_clouds):
             c_x = rng.uniform(10, size - 10)
@@ -80,7 +70,6 @@ def synthesize_realistic_satellite_scene(
             base += mask[:, :, None] * np.array([120, 130, 140])
 
     elif pattern == "developing":
-        # Disorganized convective clusters without clear center
         num_clusters = rng.randint(3, 6)
         for _ in range(num_clusters):
             c_x = cx + rng.uniform(-25, 25)
@@ -90,50 +79,41 @@ def synthesize_realistic_satellite_scene(
             base += mask[:, :, None] * np.array([170, 185, 205])
 
     elif pattern == "curved_band":
-        # Spiral logarithmic bands wrapping around center
         spiral_angle = angle + 0.08 * dist_from_center
         band_mask = np.cos(3 * spiral_angle) * np.exp(-((dist_from_center - 32) ** 2) / 600)
         band_mask = np.clip(band_mask, 0, 1)
         base += band_mask[:, :, None] * np.array([210, 220, 235])
 
-        # Core cluster
         core = np.exp(-(dist_from_center**2) / 450)
         base += core[:, :, None] * np.array([190, 200, 215])
 
     elif pattern == "central_dense_overcast":
-        # Cold, dense, symmetric overcast covering center (CDO)
         cdo_mask = np.exp(-(dist_from_center**2) / (2 * 28**2))
         base += cdo_mask[:, :, None] * np.array([235, 240, 250])
         outer_ring = np.exp(-((dist_from_center - 45) ** 2) / 250)
         base += outer_ring[:, :, None] * np.array([160, 175, 195])
 
     elif pattern == "eye":
-        # High intensity: Cold intense eyewall surrounded by spiral arms, with dark warm eye
         eye_radius = rng.uniform(7, 12)
         eyewall_radius = eye_radius + 18
 
-        # Eyewall ring
         eyewall = np.exp(-((dist_from_center - eyewall_radius) ** 2) / 110)
-        # Inside the eye: warm brightness temperature (darker in IR display)
         eye_depression = 1.0 - np.exp(-(dist_from_center**2) / (2 * eye_radius**2))
         eyewall = eyewall * eye_depression
 
         base += eyewall[:, :, None] * np.array([250, 252, 255])
 
-        # Dense spiral arms feeding the eyewall
         spiral = np.sin(2.5 * angle + 0.12 * dist_from_center)
         outer_bands = (spiral > 0.15) * np.exp(-((dist_from_center - 48) ** 2) / 500)
         base += outer_bands[:, :, None] * np.array([190, 205, 225])
 
     elif pattern == "sheared":
-        # Strong vertical shear: convection blown to one side
         shear_angle = rng.uniform(0, 2 * math.pi)
         projected = (x - cx) * math.cos(shear_angle) + (y - cy) * math.sin(shear_angle)
         shear_mask = (projected > 0) * np.exp(-(dist_from_center**2) / (2 * 32**2))
         base += shear_mask[:, :, None] * np.array([185, 195, 215])
 
     elif pattern == "dissipating":
-        # Weakening, fragmented ragged cloud patches with decaying core
         num_patches = rng.randint(5, 8)
         for _ in range(num_patches):
             p_x = cx + rng.uniform(-35, 35)
@@ -144,20 +124,14 @@ def synthesize_realistic_satellite_scene(
 
     base = np.clip(base, 0, 255).astype(np.uint8)
     img = Image.fromarray(base)
-    # Apply subtle realistic atmospheric smoothing
-    img = img.filter(ImageFilter.GaussianBlur(radius=0.7))
-    return img
+    return img.filter(ImageFilter.GaussianBlur(radius=0.7))
 
 
 def prepare_image_dataset(samples_per_class: int = 120):
-    """
-    Generate and partition morphology images strictly by storm IDs
-    to prevent temporal or spatial leakage across train/val/test splits.
-    """
+    """Generate and partition morphology images strictly by storm IDs."""
     logger.info("Preparing satellite morphology classification dataset...")
     splits = {"train": 0.70, "val": 0.15, "test": 0.15}
 
-    # Assign distinct virtual storm IDs to enforce strict grouping
     storm_ids = (
         [f"STORM_AMPHAN_{i}" for i in range(15)]
         + [f"STORM_FANI_{i}" for i in range(15)]
@@ -209,17 +183,13 @@ def prepare_image_dataset(samples_per_class: int = 120):
 
     total_imgs = sum(counts.values())
     logger.info(
-        f"Morphology images generated: train={counts['train']}, val={counts['val']}, test={counts['test']} (Total={sum(counts.values())})"
         f"Morphology images generated: train={counts['train']}, "
         f"val={counts['val']}, test={counts['test']} (Total={total_imgs})"
     )
 
 
 def prepare_sequential_track_dataset(seq_len: int = 4):
-    """
-    Read cleaned IBTrACS tracks, split by storm ID,
-    generate sliding window sequences (X, y) and compute normalization statistics.
-    """
+    """Read cleaned IBTrACS tracks, split by storm ID, and generate sliding sequences."""
     if not TRACKS_FILE.exists():
         logger.error(f"{TRACKS_FILE} does not exist! Please run download_real_data.py first.")
         return
@@ -246,7 +216,6 @@ def prepare_sequential_track_dataset(seq_len: int = 4):
                 }
             )
 
-    # Strict storm-ID partitioning
     all_sids = list(storms.keys())
     random.seed(123)
     random.shuffle(all_sids)
@@ -260,14 +229,21 @@ def prepare_sequential_track_dataset(seq_len: int = 4):
     test_sids = set(all_sids[n_train + n_val :])
 
     logger.info(
-        f"Storm track partitions: {len(train_sids)} train, {len(val_sids)} val, {len(test_sids)} test."
         f"Storm track partitions: {len(train_sids)} train, "
         f"{len(val_sids)} val, {len(test_sids)} test."
     )
 
-    feature_keys = ["lat", "lon", "wind_kts", "pressure_hpa", "dlat", "dlon", "dwind", "dpressure"]
+    feature_keys = [
+        "lat",
+        "lon",
+        "wind_kts",
+        "pressure_hpa",
+        "dlat",
+        "dlon",
+        "dwind",
+        "dpressure",
+    ]
 
-    # Compute normalization statistics ONLY on train set
     train_features = []
     for sid in train_sids:
         for pt in storms[sid]:
@@ -276,7 +252,6 @@ def prepare_sequential_track_dataset(seq_len: int = 4):
     train_arr = np.array(train_features, dtype=np.float32)
     feat_mean = train_arr.mean(axis=0)
     feat_std = train_arr.std(axis=0)
-    # Avoid zero division
     feat_std[feat_std < 1e-4] = 1.0
 
     norm_stats = {
@@ -298,10 +273,8 @@ def prepare_sequential_track_dataset(seq_len: int = 4):
                 target = pts[t + seq_len]
 
                 feat_seq = np.array([[p[k] for k in feature_keys] for p in seq], dtype=np.float32)
-                # Normalize features
                 normed_seq = (feat_seq - feat_mean) / feat_std
 
-                # Targets: predict next_lat, next_lon, next_wind, next_intensity_class
                 X_list.append(normed_seq)
                 y_pos_list.append([target["lat"], target["lon"]])
                 y_wind_list.append(target["wind_kts"])
@@ -341,7 +314,6 @@ def prepare_sequential_track_dataset(seq_len: int = 4):
     )
 
     logger.info(
-        f"Forecast sequences generated: train={len(X_train):,}, val={len(X_val):,}, test={len(X_test):,}"
         f"Forecast sequences: train={len(X_train):,}, " f"val={len(X_val):,}, test={len(X_test):,}"
     )
 

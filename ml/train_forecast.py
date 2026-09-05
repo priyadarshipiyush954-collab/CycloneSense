@@ -190,9 +190,6 @@ def train_forecast_model():
                 "intensity_classes": INTENSITY_CLASSES,
             }
             torch.save(checkpoint, CHECKPOINT_PATH)
-            logger.info(
-                f"--> Saved best forecast checkpoint to {CHECKPOINT_PATH} (Track MAE: {best_track_mae:.1f} km)"
-            )
             logger.info(f"--> Saved best forecast checkpoint (Track MAE: {best_track_mae:.1f} km)")
 
     elapsed = time.time() - start_time

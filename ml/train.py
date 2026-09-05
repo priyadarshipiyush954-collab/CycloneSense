@@ -1,13 +1,3 @@
-# Competition training entry point.
-# Recommended production model: EfficientNet/ResNet/ViT image encoder +
-# metadata MLP + fusion layer + LSTM/Temporal Transformer for forecasting.
-# Dataset layout:
-# data/train/<pattern>/*.png
-# data/val/<pattern>/*.png
-# Split by STORM ID to prevent temporal leakage.
-print("Add your GPU training pipeline here; save checkpoint to models/cyclone_model.pt")
-"""
-Model Training Pipeline for Cyclone Satellite Morphology Pattern Classification
 """Model Training Pipeline for Cyclone Satellite Morphology Pattern Classification.
 
 CycloneSense AI - PyTorch Vision Training
@@ -93,8 +83,6 @@ def evaluate(model, dataloader, criterion, device):
     running_loss = 0.0
     correct = 0
     total = 0
-    all_preds = []
-    all_targets = []
 
     with torch.no_grad():
         for images, labels in dataloader:
@@ -107,12 +95,8 @@ def evaluate(model, dataloader, criterion, device):
             correct += (preds == labels).sum().item()
             total += labels.size(0)
 
-            all_preds.extend(preds.cpu().numpy().tolist())
-            all_targets.extend(labels.cpu().numpy().tolist())
-
     epoch_loss = running_loss / total if total > 0 else 0.0
     epoch_acc = correct / total if total > 0 else 0.0
-    return epoch_loss, epoch_acc, all_preds, all_targets
     return epoch_loss, epoch_acc
 
 
@@ -123,16 +107,10 @@ def train_vision_model():
     test_dir = DATA_DIR / "test"
 
     if not train_dir.exists() or not any(train_dir.iterdir()):
-        logger.error(
-            f"Training dataset not found at {train_dir}. Please run prepare_dataset.py first."
-        )
         logger.error(f"Dataset not found at {train_dir}. Run prepare_dataset.py first.")
         return None
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    logger.info(
-        f"Using training compute device: {device} ({torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'})"
-    )
     dev_name = torch.cuda.get_device_name(0) if torch.cuda.is_available() else "CPU"
     logger.info(f"Using training compute device: {device} ({dev_name})")
 
@@ -142,7 +120,6 @@ def train_vision_model():
     test_dataset = datasets.ImageFolder(str(test_dir), transform=eval_tf)
 
     logger.info(
-        f"Loaded datasets: {len(train_dataset)} train, {len(val_dataset)} val, {len(test_dataset)} test samples."
         f"Datasets: {len(train_dataset)} train, {len(val_dataset)} val, "
         f"{len(test_dataset)} test samples."
     )
@@ -166,7 +143,6 @@ def train_vision_model():
     logger.info("Starting training loop...")
     for epoch in range(1, NUM_EPOCHS + 1):
         tr_loss, tr_acc = train_epoch(model, train_loader, criterion, optimizer, device)
-        va_loss, va_acc, _, _ = evaluate(model, val_loader, criterion, device)
         va_loss, va_acc = evaluate(model, val_loader, criterion, device)
         scheduler.step(va_loss)
 
@@ -190,9 +166,6 @@ def train_vision_model():
                 "std": [0.229, 0.224, 0.225],
             }
             torch.save(checkpoint, CHECKPOINT_PATH)
-            logger.info(
-                f"--> Saved best model checkpoint to {CHECKPOINT_PATH} (Val Acc: {best_val_acc * 100:.1f}%)"
-            )
             logger.info(f"--> Saved best model checkpoint (Val Acc: {best_val_acc * 100:.1f}%)")
 
     elapsed = time.time() - start_time
@@ -202,7 +175,6 @@ def train_vision_model():
     if CHECKPOINT_PATH.exists():
         ckpt = torch.load(CHECKPOINT_PATH, map_location=device, weights_only=False)
         model.load_state_dict(ckpt["model_state_dict"])
-        te_loss, te_acc, preds, targets = evaluate(model, test_loader, criterion, device)
         te_loss, te_acc = evaluate(model, test_loader, criterion, device)
         logger.info(f"Final Test Evaluation: Loss: {te_loss:.4f} | Accuracy: {te_acc * 100:.1f}%")
 

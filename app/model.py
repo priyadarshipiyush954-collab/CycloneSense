@@ -1,6 +1,4 @@
-import logging
 from io import BytesIO
-import json
 import logging
 from pathlib import Path
 
@@ -63,8 +61,8 @@ def get_vision_model():
         _vision_meta = checkpoint
         logger.info(f"Loaded trained PyTorch CyclonePatternCNN from {VISION_MODEL_PATH} onto {device}")
         logger.info(
-            f"Loaded trained PyTorch CyclonePatternCNN from {VISION_MODEL_PATH} onto {device}"
-        )
+    f"Loaded trained PyTorch CyclonePatternCNN from {VISION_MODEL_PATH} onto {device}"
+)
         return _vision_model, _vision_meta
     except Exception as exc:
         logger.warning(f"Could not load PyTorch vision model: {exc}. Falling back to baseline.")
@@ -100,8 +98,8 @@ def get_forecast_model():
         _forecast_meta = checkpoint
         logger.info(f"Loaded trained PyTorch CycloneTrackLSTM from {FORECAST_MODEL_PATH} onto {device}")
         logger.info(
-            f"Loaded trained PyTorch CycloneTrackLSTM from {FORECAST_MODEL_PATH} onto {device}"
-        )
+    f"Loaded trained PyTorch CycloneTrackLSTM from {FORECAST_MODEL_PATH} onto {device}"
+)
         return _forecast_model, _forecast_meta
     except Exception as exc:
         logger.warning(f"Could not load PyTorch forecast model: {exc}. Falling back to baseline.")
@@ -214,9 +212,8 @@ def forecast(obs):
             wind = getattr(o, "wind_kts", o.get("wind_kts") if isinstance(o, dict) else 0.0)
             pres = getattr(o, "pressure_hpa", o.get("pressure_hpa") if isinstance(o, dict) else 1000.0)
             pres = getattr(
-                o, "pressure_hpa", o.get("pressure_hpa") if isinstance(o, dict) else 1000.0
-            )
-
+    o, "pressure_hpa", o.get("pressure_hpa") if isinstance(o, dict) else 1000.0
+)
             if i == 0:
                 dlat, dlon, dwind, dpres = 0.0, 0.0, 0.0, 0.0
             else:
