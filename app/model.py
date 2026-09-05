@@ -60,10 +60,10 @@ def get_vision_model():
         _vision_model = model
         _vision_meta = checkpoint
         logger.info(
-            f"Loaded trained PyTorch CyclonePatternCNN from {VISION_MODEL_PATH} onto {device}"
-        )
-        logger.info(
-            f"Loaded trained PyTorch CyclonePatternCNN from {VISION_MODEL_PATH} onto {device}"
+            "Loaded trained PyTorch CyclonePatternCNN from %s onto %s",
+            VISION_MODEL_PATH,
+            device,
+
         )
         return _vision_model, _vision_meta
     except Exception as exc:
@@ -99,10 +99,10 @@ def get_forecast_model():
         _forecast_model = model
         _forecast_meta = checkpoint
         logger.info(
-            f"Loaded trained PyTorch CycloneTrackLSTM from {FORECAST_MODEL_PATH} onto {device}"
-        )
-        logger.info(
-            f"Loaded trained PyTorch CycloneTrackLSTM from {FORECAST_MODEL_PATH} onto {device}"
+            "Loaded trained PyTorch CycloneTrackLSTM from %s onto %s",
+            FORECAST_MODEL_PATH,
+            device,
+
         )
         return _forecast_model, _forecast_meta
     except Exception as exc:
@@ -164,6 +164,7 @@ def classify_image(data: bytes) -> tuple[str, float, str]:
                 transforms.Normalize(mean=mean, std=std),
             ]
         )
+
         tf = transforms.Compose(
             [
                 transforms.Resize((img_size, img_size)),
@@ -222,6 +223,7 @@ def forecast(obs):
             pres = getattr(
                 o, "pressure_hpa", o.get("pressure_hpa") if isinstance(o, dict) else 1000.0
             )
+
             if i == 0:
                 dlat, dlon, dwind, dpres = 0.0, 0.0, 0.0, 0.0
             else:
@@ -236,8 +238,11 @@ def forecast(obs):
                     "pressure_hpa",
                     prev.get("pressure_hpa") if isinstance(prev, dict) else 1000.0,
                 )
+
                 p_wind = getattr(
-                    prev, "wind_kts", prev.get("wind_kts") if isinstance(prev, dict) else 0.0
+                    prev,
+                    "wind_kts",
+                    prev.get("wind_kts") if isinstance(prev, dict) else 0.0,
                 )
                 p_pres = getattr(
                     prev,
@@ -292,17 +297,20 @@ def forecast(obs):
 
 
 def forecast_baseline(obs):
+    """Forecast using constant-velocity kinematics when no trained model is available."""
     a, b = obs[-2], obs[-1]
-    next_lat = b.lat + (b.lat - a.lat)
-    next_lon = b.lon + (b.lon - a.lon)
-    wind = max(0.0, b.wind_kts + (b.wind_kts - a.wind_kts))
-    a_lat = getattr(a, "lat", a.get("lat") if isinstance(a, dict) else 0.0)
-    a_lon = getattr(a, "lon", a.get("lon") if isinstance(a, dict) else 0.0)
-    a_wind = getattr(a, "wind_kts", a.get("wind_kts") if isinstance(a, dict) else 0.0)
 
-    b_lat = getattr(b, "lat", b.get("lat") if isinstance(b, dict) else 0.0)
-    b_lon = getattr(b, "lon", b.get("lon") if isinstance(b, dict) else 0.0)
-    b_wind = getattr(b, "wind_kts", b.get("wind_kts") if isinstance(b, dict) else 0.0)
+    def value(item, key, default=0.0):
+        if isinstance(item, dict):
+            return item.get(key, default)
+        return getattr(item, key, default)
+
+    a_lat = value(a, "lat")
+    a_lon = value(a, "lon")
+    a_wind = value(a, "wind_kts")
+    b_lat = value(b, "lat")
+    b_lon = value(b, "lon")
+    b_wind = value(b, "wind_kts")
 
     next_lat = round(b_lat + (b_lat - a_lat), 2)
     next_lon = round(b_lon + (b_lon - a_lon), 2)
