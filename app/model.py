@@ -1,6 +1,14 @@
+"""CycloneSense inference helpers.
+
+The backend always has a deterministic, dependency-light fallback so the API
+works even when trained PyTorch checkpoints are not present. When valid
+checkpoints are available, inference uses them automatically.
+"""
+
 import logging
 from io import BytesIO
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 from PIL import Image
@@ -28,101 +36,92 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 VISION_MODEL_PATH = BASE_DIR / "models" / "cyclone_model.pt"
 FORECAST_MODEL_PATH = BASE_DIR / "models" / "forecast_model.pt"
 
-# Global model cache
 _vision_model = None
 _vision_meta = None
 _forecast_model = None
 _forecast_meta = None
 
 
+def _item_value(item: Any, key: str, default: float = 0.0) -> float:
+    """Read a field from a Pydantic object or a plain mapping."""
+    if isinstance(item, dict):
+        return float(item.get(key, default))
+    return float(getattr(item, key, default))
+
+
+def _safe_std(std: np.ndarray) -> np.ndarray:
+    """Prevent divide-by-zero when a training statistic has zero variance."""
+    return np.where(np.abs(std) < 1e-8, 1.0, std)
+
+
 def get_vision_model():
-    """Lazily load PyTorch CyclonePatternCNN if trained checkpoint exists."""
+    """Lazily load the trained vision model when optional dependencies exist."""
     global _vision_model, _vision_meta
     if _vision_model is not None:
         return _vision_model, _vision_meta
-
     if not VISION_MODEL_PATH.exists():
         return None, None
 
     try:
         import torch
-
         from ml.models import CyclonePatternCNN
 
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         checkpoint = torch.load(VISION_MODEL_PATH, map_location=device, weights_only=False)
-
-        model = CyclonePatternCNN(num_classes=len(checkpoint.get("classes", PATTERNS)))
+        classes = checkpoint.get("classes", PATTERNS)
+        model = CyclonePatternCNN(num_classes=len(classes))
         model.load_state_dict(checkpoint["model_state_dict"])
         model.to(device)
         model.eval()
-
         _vision_model = model
         _vision_meta = checkpoint
-        logger.info(
-            "Loaded trained PyTorch CyclonePatternCNN from %s onto %s",
-            VISION_MODEL_PATH,
-            device,
-
-        )
-        return _vision_model, _vision_meta
+        logger.info("Loaded vision checkpoint from %s on %s", VISION_MODEL_PATH, device)
+        return model, checkpoint
     except Exception as exc:
-        logger.warning(f"Could not load PyTorch vision model: {exc}. Falling back to baseline.")
+        logger.warning("Vision checkpoint unavailable: %s", exc)
         return None, None
 
 
 def get_forecast_model():
-    """Lazily load PyTorch CycloneTrackLSTM if trained checkpoint exists."""
+    """Lazily load the trained LSTM when optional dependencies/checkpoint exist."""
     global _forecast_model, _forecast_meta
     if _forecast_model is not None:
         return _forecast_model, _forecast_meta
-
     if not FORECAST_MODEL_PATH.exists():
         return None, None
 
     try:
         import torch
-
         from ml.models import CycloneTrackLSTM
 
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         checkpoint = torch.load(FORECAST_MODEL_PATH, map_location=device, weights_only=False)
-
-        norm_stats = checkpoint["normalization_stats"]
-        input_dim = len(norm_stats["keys"])
-
+        stats = checkpoint["normalization_stats"]
+        input_dim = len(stats["keys"])
         model = CycloneTrackLSTM(input_dim=input_dim, hidden_dim=64, num_layers=2)
         model.load_state_dict(checkpoint["model_state_dict"])
         model.to(device)
         model.eval()
-
         _forecast_model = model
         _forecast_meta = checkpoint
-        logger.info(
-            "Loaded trained PyTorch CycloneTrackLSTM from %s onto %s",
-            FORECAST_MODEL_PATH,
-            device,
-
-        )
-        return _forecast_model, _forecast_meta
+        logger.info("Loaded forecast checkpoint from %s on %s", FORECAST_MODEL_PATH, device)
+        return model, checkpoint
     except Exception as exc:
-        logger.warning(f"Could not load PyTorch forecast model: {exc}. Falling back to baseline.")
+        logger.warning("Forecast checkpoint unavailable: %s", exc)
         return None, None
 
 
 def image_stats(data: bytes):
+    """Return simple morphology statistics used by the no-model demo classifier."""
     img = Image.open(BytesIO(data)).convert("RGB").resize((128, 128))
     a = np.asarray(img, dtype=np.float32) / 255.0
     g = a.mean(axis=2)
-    return (
-        float(g.mean()),
-        float(g.std()),
-        float(np.abs(np.diff(g, axis=0)).mean() + np.abs(np.diff(g, axis=1)).mean()),
-        float(g[40:88, 40:88].mean()),
-    )
+    edge = np.abs(np.diff(g, axis=0)).mean() + np.abs(np.diff(g, axis=1)).mean()
+    return float(g.mean()), float(g.std()), float(edge), float(g[40:88, 40:88].mean())
 
 
 def classify_demo(data: bytes):
+    """Deterministic image heuristic used when the trained model is absent."""
     mean, std, edge, center = image_stats(data)
     if std < 0.10 and mean > 0.55:
         return "central_dense_overcast", 0.63
@@ -138,63 +137,71 @@ def classify_demo(data: bytes):
 
 
 def classify_image(data: bytes) -> tuple[str, float, str]:
-    """
-    Classify satellite imagery morphology.
-    Returns: (pattern_label, confidence, model_name)
-    """
+    """Classify satellite imagery morphology."""
     model, meta = get_vision_model()
     if model is None:
-        label, conf = classify_demo(data)
-        return label, conf, "demo-morphology-baseline"
+        label, confidence = classify_demo(data)
+        return label, confidence, "demo-morphology-baseline"
 
     try:
         import torch
         from torchvision import transforms
 
-        device = next(model.parameters()).device
         img = Image.open(BytesIO(data)).convert("RGB")
-        img_size = meta.get("img_size", 128)
+        img_size = int(meta.get("img_size", 128))
         mean = meta.get("mean", [0.485, 0.456, 0.406])
         std = meta.get("std", [0.229, 0.224, 0.225])
-
-        tf = transforms.Compose(
+        transform = transforms.Compose(
             [
                 transforms.Resize((img_size, img_size)),
                 transforms.ToTensor(),
                 transforms.Normalize(mean=mean, std=std),
             ]
         )
-
-        tf = transforms.Compose(
-            [
-                transforms.Resize((img_size, img_size)),
-                transforms.ToTensor(),
-                transforms.Normalize(mean=mean, std=std),
-            ]
-        )
-
-        tensor = tf(img).unsqueeze(0).to(device)
-
+        device = next(model.parameters()).device
+        tensor = transform(img).unsqueeze(0).to(device)
         with torch.no_grad():
             logits = model(tensor)
             probs = torch.softmax(logits, dim=1).squeeze(0)
-            pred_idx = torch.argmax(probs).item()
-            conf = float(probs[pred_idx].item())
-
+            pred_idx = int(torch.argmax(probs).item())
+            confidence = float(probs[pred_idx].item())
         classes = meta.get("classes", PATTERNS)
         label = classes[pred_idx]
-        return label, round(conf, 4), "cyclone-pattern-cnn-pytorch"
+        return label, round(confidence, 4), "cyclone-pattern-cnn-pytorch"
     except Exception as exc:
-        logger.warning(f"Inference error with PyTorch model: {exc}. Using baseline.")
-        label, conf = classify_demo(data)
-        return label, conf, "demo-morphology-baseline"
+        logger.warning("Vision inference failed; using baseline: %s", exc)
+        label, confidence = classify_demo(data)
+        return label, confidence, "demo-morphology-baseline"
+
+
+def _build_forecast_features(obs):
+    """Build the exact 8-feature sequence expected by the LSTM."""
+    sequence = []
+    previous = None
+    for item in obs:
+        lat = _item_value(item, "lat")
+        lon = _item_value(item, "lon")
+        wind = _item_value(item, "wind_kts")
+        pressure = _item_value(item, "pressure_hpa", 1000.0)
+
+        if previous is None:
+            dlat = dlon = dwind = dpressure = 0.0
+        else:
+            dlat = lat - previous[0]
+            dlon = lon - previous[1]
+            dwind = wind - previous[2]
+            dpressure = pressure - previous[3]
+
+        sequence.append(
+            [lat, lon, wind, pressure, dlat, dlon, dwind, dpressure]
+        )
+        previous = (lat, lon, wind, pressure)
+
+    return np.asarray(sequence, dtype=np.float32)
 
 
 def forecast(obs):
-    """
-    Forecast next storm track position, wind speed, intensity class and confidence.
-    Uses PyTorch LSTM if checkpoint is available; otherwise uses baseline kinematics.
-    """
+    """Forecast next storm position, wind, intensity and confidence."""
     if len(obs) < 2:
         raise ValueError("At least 2 sequential observations are required for forecasting.")
 
@@ -205,125 +212,74 @@ def forecast(obs):
     try:
         import torch
 
-        device = next(model.parameters()).device
-        norm_stats = meta["normalization_stats"]
-        keys = norm_stats["keys"]
-        mean = np.array(norm_stats["mean"], dtype=np.float32)
-        std = np.array(norm_stats["std"], dtype=np.float32)
+        stats = meta["normalization_stats"]
+        keys = list(stats["keys"])
+        mean = np.asarray(stats["mean"], dtype=np.float32)
+        std = _safe_std(np.asarray(stats["std"], dtype=np.float32))
 
-        # Build feature vector sequence
-        seq_features = []
-        for i, o in enumerate(obs):
-            lat = getattr(o, "lat", o.get("lat") if isinstance(o, dict) else 0.0)
-            lon = getattr(o, "lon", o.get("lon") if isinstance(o, dict) else 0.0)
-            wind = getattr(o, "wind_kts", o.get("wind_kts") if isinstance(o, dict) else 0.0)
-            pres = getattr(
-                o, "pressure_hpa", o.get("pressure_hpa") if isinstance(o, dict) else 1000.0
+        # Feature dictionaries keep this compatible with arbitrary key ordering
+        # recorded during training while still using the documented 8 features.
+        raw = _build_forecast_features(obs)
+        feature_map = {
+            key: raw[:, idx]
+            for idx, key in enumerate(
+                ["lat", "lon", "wind_kts", "pressure_hpa", "dlat", "dlon", "dwind", "dpressure"]
             )
-            pres = getattr(
-                o, "pressure_hpa", o.get("pressure_hpa") if isinstance(o, dict) else 1000.0
-            )
+        }
+        sequence = np.column_stack([feature_map[key] for key in keys]).astype(np.float32)
 
-            if i == 0:
-                dlat, dlon, dwind, dpres = 0.0, 0.0, 0.0, 0.0
-            else:
-                prev = obs[i - 1]
-                p_lat = getattr(prev, "lat", prev.get("lat") if isinstance(prev, dict) else 0.0)
-                p_lon = getattr(prev, "lon", prev.get("lon") if isinstance(prev, dict) else 0.0)
-                p_wind = getattr(
-                    prev, "wind_kts", prev.get("wind_kts") if isinstance(prev, dict) else 0.0
-                )
-                p_pres = getattr(
-                    prev,
-                    "pressure_hpa",
-                    prev.get("pressure_hpa") if isinstance(prev, dict) else 1000.0,
-                )
-
-                p_wind = getattr(
-                    prev,
-                    "wind_kts",
-                    prev.get("wind_kts") if isinstance(prev, dict) else 0.0,
-                )
-                p_pres = getattr(
-                    prev,
-                    "pressure_hpa",
-                    prev.get("pressure_hpa") if isinstance(prev, dict) else 1000.0,
-                )
-                dlat = lat - p_lat
-                dlon = lon - p_lon
-                dwind = wind - p_wind
-                dpres = pres - p_pres
-
-            feat_dict = {
-                "lat": lat,
-                "lon": lon,
-                "wind_kts": wind,
-                "pressure_hpa": pres,
-                "dlat": dlat,
-                "dlon": dlon,
-                "dwind": dwind,
-                "dpressure": dpres,
-            }
-            seq_features.append([feat_dict[k] for k in keys])
-
-        # Take last 4 observations (or pad if fewer)
-        if len(seq_features) < 4:
-            # Repeat first observation to reach length 4
-            pad = [seq_features[0]] * (4 - len(seq_features))
-            seq_features = pad + seq_features
+        if len(sequence) < 4:
+            sequence = np.vstack([np.repeat(sequence[[0]], 4 - len(sequence), axis=0), sequence])
         else:
-            seq_features = seq_features[-4:]
+            sequence = sequence[-4:]
 
-        arr = (np.array(seq_features, dtype=np.float32) - mean) / std
-        tensor = torch.tensor(arr, dtype=torch.float32).unsqueeze(0).to(device)
+        tensor = torch.tensor((sequence - mean) / std, dtype=torch.float32).unsqueeze(0)
+        tensor = tensor.to(next(model.parameters()).device)
 
         with torch.no_grad():
             pos_pred, wind_pred, class_logits = model(tensor)
             probs = torch.softmax(class_logits, dim=1).squeeze(0)
-            cls_idx = torch.argmax(probs).item()
-            cls_conf = float(probs[cls_idx].item())
+            class_idx = int(torch.argmax(probs).item())
+            class_confidence = float(probs[class_idx].item())
 
         next_lat = round(float(pos_pred[0, 0].item()), 2)
         next_lon = round(float(pos_pred[0, 1].item()), 2)
-        pred_wind = round(max(0.0, float(wind_pred[0].item())), 1)
+        predicted_wind = round(max(0.0, float(wind_pred[0].item())), 1)
         classes = meta.get("intensity_classes", INTENSITY_CLASSES)
-        intensity_class = classes[cls_idx]
-        confidence = round(min(0.98, max(0.50, cls_conf)), 2)
+        intensity = classes[class_idx]
+        confidence = round(float(np.clip(class_confidence, 0.50, 0.98)), 2)
 
-        return next_lat, next_lon, pred_wind, intensity_class, confidence
+        return next_lat, next_lon, predicted_wind, intensity, confidence
     except Exception as exc:
-        logger.warning(f"Error during LSTM forecasting: {exc}. Falling back to baseline.")
+        logger.warning("LSTM inference failed; using baseline: %s", exc)
         return forecast_baseline(obs)
 
 
 def forecast_baseline(obs):
-    """Forecast using constant-velocity kinematics when no trained model is available."""
+    """Constant-velocity baseline; deterministic and fully offline."""
+    if len(obs) < 2:
+        raise ValueError("At least 2 sequential observations are required for forecasting.")
+
     a, b = obs[-2], obs[-1]
-
-    def value(item, key, default=0.0):
-        if isinstance(item, dict):
-            return item.get(key, default)
-        return getattr(item, key, default)
-
-    a_lat = value(a, "lat")
-    a_lon = value(a, "lon")
-    a_wind = value(a, "wind_kts")
-    b_lat = value(b, "lat")
-    b_lon = value(b, "lon")
-    b_wind = value(b, "wind_kts")
+    a_lat = _item_value(a, "lat")
+    a_lon = _item_value(a, "lon")
+    a_wind = _item_value(a, "wind_kts")
+    b_lat = _item_value(b, "lat")
+    b_lon = _item_value(b, "lon")
+    b_wind = _item_value(b, "wind_kts")
 
     next_lat = round(b_lat + (b_lat - a_lat), 2)
     next_lon = round(b_lon + (b_lon - a_lon), 2)
-    wind = round(max(0.0, b_wind + (b_wind - a_wind)), 1)
+    predicted_wind = round(max(0.0, b_wind + (b_wind - a_wind)), 1)
 
-    if wind < 34:
-        cls = "depression"
-    elif wind < 64:
-        cls = "tropical_storm"
-    elif wind < 83:
-        cls = "severe_cyclonic_storm"
+    if predicted_wind < 34:
+        intensity = "depression"
+    elif predicted_wind < 64:
+        intensity = "tropical_storm"
+    elif predicted_wind < 83:
+        intensity = "severe_cyclonic_storm"
     else:
-        cls = "very_severe_cyclonic_storm"
+        intensity = "very_severe_cyclonic_storm"
 
-    confidence = min(0.95, 0.55 + min(len(obs), 10) * 0.03)
-    return next_lat, next_lon, wind, cls, confidence
+    confidence = round(min(0.95, 0.55 + min(len(obs), 10) * 0.03), 2)
+    return next_lat, next_lon, predicted_wind, intensity, confidence
