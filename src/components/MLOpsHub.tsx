@@ -203,7 +203,7 @@ ISSUED BY: CYCLONESENSE OPERATIONAL DISASTER INTELLIGENCE DESK`;
               MLOps Command, Production Benchmarks & Hazard Dissemination
             </h2>
             <p className="text-xs text-slate-400 font-mono-code">
-              Operational Cyclone Telemetry, Python FastAPI Backend & Multi-Device Access
+              Operational Cyclone Telemetry, Python FastAPI Backend & Model Pipeline
             </p>
           </div>
         </div>
