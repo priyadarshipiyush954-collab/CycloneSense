@@ -323,6 +323,24 @@ export const Navigation: React.FC<NavigationProps> = ({
                       <span>{copiedText === "gcloudCmd" ? "Copied" : "Copy"}</span>
                     </button>
                   </div>
+
+                  {/* Windows missing gcloud helper */}
+                  <div className="bg-[#020813] p-2.5 rounded-lg border border-amber-800/40 text-[11px] text-amber-200/90 font-sans space-y-1">
+                    <div className="font-bold text-amber-300 flex items-center gap-1">
+                      <span>💡 On Windows and getting "'gcloud' is not recognized"?</span>
+                    </div>
+                    <div>Install it in 10 seconds via PowerShell:</div>
+                    <div className="flex items-center justify-between bg-black/50 p-1.5 rounded border border-amber-900/50 font-mono-code text-cyan-300">
+                      <code>winget install Google.CloudSDK</code>
+                      <button
+                        onClick={() => handleCopy("winget install Google.CloudSDK", "wingetCmd")}
+                        className="text-[10px] text-cyan-400 hover:underline px-1"
+                      >
+                        {copiedText === "wingetCmd" ? "Copied!" : "Copy"}
+                      </button>
+                    </div>
+                    <div className="text-slate-400 text-[10px]">Then restart PowerShell and re-run the deploy command!</div>
+                  </div>
                 </div>
 
                 <div className="bg-[#050e1a] border border-[#163654] p-4 rounded-xl space-y-3 font-sans">

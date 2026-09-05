@@ -46,16 +46,50 @@ gcloud run deploy cyclonesense-ai \
 
 The project includes pre-configured deployment scripts:
 
+**On Windows (PowerShell):**
+```powershell
+# If you don't have gcloud installed yet, install it via:
+winget install Google.CloudSDK
+
+# Then run:
+.\deploy-cloudrun.ps1
+```
+
 **On Linux / macOS:**
 ```bash
 chmod +x deploy-cloudrun.sh
 ./deploy-cloudrun.sh
 ```
 
-**On Windows (PowerShell):**
-```powershell
-.\deploy-cloudrun.ps1
+---
+
+## 🛠️ Fixing: `gcloud : The term 'gcloud' is not recognized` on Windows
+
+If you get this error in PowerShell:
 ```
+gcloud : The term 'gcloud' is not recognized as the name of a cmdlet, function, script file...
+```
+
+It means the Google Cloud SDK is not yet installed on your Windows PC. Choose either method:
+
+### Method 1: Install with 1 command in PowerShell (Easiest)
+Run this in your PowerShell window:
+```powershell
+winget install Google.CloudSDK
+```
+*(When prompted, accept the license agreements. Once finished, close PowerShell and open a new PowerShell window).*
+
+### Method 2: Official Windows Installer
+1. Download the installer: https://dl.google.com/dl/cloudsdk/channels/rapid/GoogleCloudSDKInstaller.exe
+2. Run the installer and keep the default checkboxes selected (including "Start Google Cloud SDK Shell").
+3. Once completed, restart PowerShell and you can run `gcloud` anywhere.
+
+### Method 3: No Local Install Needed (Cloud Shell in Browser)
+If you do not want to install software on your PC:
+1. Open https://shell.cloud.google.com in your web browser.
+2. Clone or upload your repository folder.
+3. Run: `gcloud run deploy cyclonesense-ai --source . --port 3000 --allow-unauthenticated`
+Cloud Shell already has `gcloud`, Docker, and Python pre-installed.
 
 ### Option C: Using Google Cloud Build (`cloudbuild.yaml`)
 
