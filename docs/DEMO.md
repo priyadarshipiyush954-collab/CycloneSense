@@ -1,4 +1,4 @@
-# 3-minute SIH demo
+# 3-Minute Operational CycloneSense Demo
 0:00 problem — fragmented cyclone monitoring.
 0:30 upload satellite image.
 1:00 show structural classification + confidence.

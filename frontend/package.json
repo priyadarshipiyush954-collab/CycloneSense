@@ -1,1 +1,13 @@
-{"name":"cyclonesense-frontend","private":true,"version":"1.0.0","type":"module","scripts":{"dev":"vite --host 0.0.0.0","build":"vite build","preview":"vite preview --host 0.0.0.0"},"dependencies":{"lucide-react":"^0.468.0","react":"^19.0.0","react-dom":"^19.0.0"},"devDependencies":{"@vitejs/plugin-react":"^4.3.4","vite":"^6.0.0"}}
+{
+  "name": "cyclonesense-frontend-wrapper",
+  "version": "1.2.0",
+  "private": true,
+  "description": "Forwarding package.json for users navigating into the frontend directory",
+  "scripts": {
+    "postinstall": "npm --prefix .. install",
+    "dev": "npm --prefix .. run dev",
+    "build": "npm --prefix .. run build",
+    "lint": "npm --prefix .. run lint",
+    "start": "npm --prefix .. run start"
+  }
+}

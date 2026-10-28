@@ -1,0 +1,8 @@
+{
+  "name": "CycloneSense AI",
+  "description": "AI-powered tropical cyclone identification, structural classification, and short-term forecasting from satellite observations.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

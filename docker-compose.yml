@@ -1,14 +1,28 @@
+version: "3.8"
+
 services:
-  api:
-    build: .
-    ports: ["8000:8000"]
-    restart: unless-stopped
-  frontend:
-    image: node:22-alpine
-    working_dir: /web
-    volumes: ["./frontend:/web"]
-    ports: ["3000:5173"]
+  # Web Dashboard & High-Performance Proxy (accessible on any device at port 3000)
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
     environment:
-      VITE_API_URL: http://localhost:8000
-    command: sh -c "npm install && npm run dev"
-    depends_on: [api]
+      - PORT=3000
+      - NODE_ENV=production
+      - VITE_API_URL=http://api:8000
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  # Native Python FastAPI & Machine Learning Engine (port 8000)
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.python
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
