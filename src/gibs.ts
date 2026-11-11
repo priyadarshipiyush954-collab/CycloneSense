@@ -16,8 +16,9 @@ const L6 = "GoogleMapsCompatible_Level6";
 
 export const LAYERS: SatLayer[] = [
   { id: "viirs", label: "Daily true colour", kind: "daily", coast: "#fff3b0",
-    note: "NASA VIIRS, one daytime pass per day (about 1:30 pm local time). Best for seeing cloud structure.",
-    variants: [v("VIIRS_SNPP_CorrectedReflectance_TrueColor", "GoogleMapsCompatible_Level9", "jpg", 9, "best", true)] },
+    note: "NASA VIIRS on NOAA-20, one daytime pass per day (about 1:30 pm local time). Best for seeing cloud structure.",
+    // Suomi NPP stopped delivering data on 2 Nov 2026, so its SNPP layer no longer gets new days. NOAA-20 has the same 1:30 pm pass.
+    variants: [v("VIIRS_NOAA20_CorrectedReflectance_TrueColor", "GoogleMapsCompatible_Level9", "jpg", 9, "best", true)] },
   { id: "modis-ir", label: "Daily thermal IR", kind: "daily", coast: "#ffffff",
     note: "NASA MODIS Terra cloud-top temperature, daytime pass. Colder (higher) clouds are usually the stronger storms.",
     variants: [v("MODIS_Terra_Brightness_Temp_Band31_Day", "GoogleMapsCompatible_Level7", "png", 7)] },
